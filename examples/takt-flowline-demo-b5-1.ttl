@@ -1,15 +1,15 @@
 # =============================================================================
 # Worked A-Box — wagon 5.1 (Drywall — first-side boarding) in takt zone B5:1
 # Source: anonymized takt-flowline-demo fixture (wagon 5.1, zone B5:1).
-# Conforms to ontology/takt.ttl v0.3.1 (minimal core; TaktZone ⊑ top:FunctionalZone
+# Conforms to ontology/takt.ttl v0.4.1 (minimal core; TaktZone ⊑ top:FunctionalZone
 # [⊑ bot:Zone] + dtc:AsPlannedWorkingZone).
 #
-# Exercises every term in the core, plus the BOT topology a takt zone now carries:
-#   bot:containsElement (quantities), bot:adjacentZone (flow), dtc:isLocatedIn (building).
-# Calendar dates reuse DTC (dtc:startTime / dtc:endTime); zone area from TopologicPy.
+# Exercises every term in the core, plus the BOT topology a takt zone carries:
+#   bot:containsElement (zone inventory), bot:adjacentZone (flow), dtc:isLocatedIn (building).
+# Calendar dates reuse DTC (dtc:startTime / dtc:endTime); zone/element area from TopologicPy.
 #
 # Validate:  riot --validate ../ontology/takt.ttl takt-flowline-demo-b5-1.ttl   (Apache Jena)
-# Values marked (illustrative) are placeholders so the calculation reads end-to-end.
+# Values marked (illustrative) are placeholders (calendar dates).
 # =============================================================================
 
 @prefix takt: <https://w3id.org/taktology#> .
@@ -17,7 +17,6 @@
 @prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
 @prefix bot:  <https://w3id.org/bot#> .
 @prefix ex:   <https://w3id.org/taktology/examples/demo#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
@@ -25,14 +24,7 @@
 # WAGON TYPE — the reusable template (activity-structure row, BIMTakt Bild 5)
 # -----------------------------------------------------------------------------
 ex:wagon_5_1 a takt:WagonType ;
-    rdfs:label "Drywall — first-side boarding"@en ;
-    takt:productionRate 0.58 ;          # h/m²  (auto-suggested from reference DB)
-    takt:crewSize       5 ;
-    takt:quantityUnit   "AREA" ;
-    prov:wasDerivedFrom ex:reference_database .   # provenance of the rate/crew values
-
-ex:reference_database a prov:Entity ;
-    rdfs:label "BIMTakt reference project database"@en .
+    rdfs:label "Drywall — first-side boarding"@en .
 
 # -----------------------------------------------------------------------------
 # CREW — the (anonymized) subcontractor code on the row
@@ -59,15 +51,15 @@ ex:zone_C5 a takt:TaktZone ;                 # neighbour stub (for the adjacency
 ex:storey_plan5 a bot:Storey ;               # bot:Storey ⊑ bot:Zone — valid dtc:isLocatedIn target
     rdfs:label "PLAN 5" .
 
-# Two elements in the SAME zone, owned by DIFFERENT trades — this is why the
-# duration must read from takt:actsOn (operand) and not the zone total.
+# Two elements in the SAME zone, owned by DIFFERENT trades — this is why takt:actsOn
+# (the operand) is a distinct link: each task reads its own element, not the zone total.
 ex:gipsvagg_B5_1 a top:Element ;             # top:Element ⊑ bot:Element
     rdfs:label "Gypsum wall set, B5:1"@en ;
-    top:area 184.0 .                         # m²  (the operand quantity for wagon 5.1)
+    top:area 184.0 .                         # m²  (TopologicPy Cell geometry)
 
-ex:slab_B5_1 a top:Element ;
+ex:slab_B5_1 a top:Element ;                 # acted on by a different trade (screed), not wagon 5.1
     rdfs:label "Floor slab, B5:1"@en ;
-    top:area 95.0 .                          # belongs to the screed wagon, NOT 5.1
+    top:area 95.0 .
 
 # -----------------------------------------------------------------------------
 # TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask = dtc:WorkPackage
@@ -84,11 +76,8 @@ ex:task_5_1_B5_1 a takt:TaktTask ;
     takt:isMilestone  false .
 
 # -----------------------------------------------------------------------------
-# TAKT TIME — taktDuration is the fixed beat; the work content is COMPUTED:
-#   qty   = 184 m²            (ex:gipsvagg_B5_1 top:area, via takt:actsOn)
-#   hours = 184 * 0.58  = 106.72 person-hours
-#   days  = 106.72 / (5 * 8) = ~2.67 crew-days  ->  fits inside the 1-week takt
-#   => taktDuration = P1W (the beat); calendar dates via DTC.
+# TAKT TIME — taktDuration is the fixed beat (P1W); takt:slot positions the task in
+# the plan grid. Calendar dates reuse DTC (dtc:startTime / dtc:endTime).
 # -----------------------------------------------------------------------------
 ex:time_5_1_B5_1 a takt:TaktTime ;
     takt:slot         4 ;               # takt week T04 — matches the demo flowline

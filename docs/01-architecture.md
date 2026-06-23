@@ -9,10 +9,10 @@ takt-specific layer. Alignment is by *reference* (no `owl:imports`) to stay ligh
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  takt:   (THIS repo — v0.3.0 minimal core, 17 terms)                  │
+│  takt:   (THIS repo — v0.4.1 minimal core, 15 terms)                  │
 │          TaktTask, WagonType, Crew, TaktTime, TaktZone                │
-│          performedIn, actsOn, instantiates, hasSuccessor, hasTaktTime │
-│          + takt-specific values: productionRate, crewSize, taktDuration│
+│          performedIn, actsOn, instantiates, hasSuccessor, hasTaktTime,│
+│          partOfProcess  + rhythm/flag values: taktDuration, slot      │
 │   subClassOf / subPropertyOf ↓      skos:closeMatch → ifc:            │
 ├─────────────────────────────────────────────────────────────────────┤
 │  dtc:    Digital Twin Construction ontology (process backbone)        │
@@ -65,8 +65,8 @@ that, taktology adds only what DTC lacks:
   `ifc:IfcTaskType`.
 - **The takt rhythm** (`takt:taktDuration`, `takt:TaktTime`) — DTC has start/end
   timestamps but no concept of a fixed takt beat.
-- **Work-density effort values** (`takt:productionRate` h/m², `crewSize`,
-  `quantityUnit`) — the BIMTakt / Work Density Method primitives.
+- **A process-layer link** (`takt:partOfProcess` → `dtc:Process`) — places the task in
+  the on-site production process (Ljung 2026, spatio-temporal breakdown structure).
 - **Direct-edge simplifications** (`hasSuccessor`, `performedBy`) over DTC's reified
   precondition/assignment patterns — `rdfs:seeAlso`-related, not subproperties.
 

@@ -42,12 +42,11 @@ sequence.
 ## The through-line to this repo
 
 The paper's `TaktZone` / project-structure → **`takt:TaktZone` ⊑ `top:FunctionalZone`**
-(geometry, quantities). Its activity-structure → **`takt:WagonType` + `takt:TaktTask`**
-(rates, crews, predecessor = `hasSuccessor`). Its quantity formula →
-**duration computed from `actsOn` quantity × `productionRate` ÷ `crewSize`**. Its
-reference-database matching → application logic that sits **outside** the schema;
-the model holds only the *output* (the landed rate/crew), with `prov:wasDerivedFrom`
-recording where it came from.
+(geometry). Its activity-structure → **`takt:WagonType` + `takt:TaktTask`**
+(predecessor = `hasSuccessor`). Its quantity/duration formula (`actsOn` quantity × rate
+÷ crew) sits **outside** this schema — a downstream consumer concern: taktology holds
+the structural graph and the element geometry (`top:area`), and a consumer supplies its
+own rate/crew model (see [ADR-10](03-decisions.md)).
 
 What the paper leaves as open work (the reference DB, the matching algorithm) stays
 out of scope here by design — this repo is the **interchange model** for the result,

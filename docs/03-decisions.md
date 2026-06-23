@@ -133,8 +133,8 @@ do). Reading DTC's published TTL showed it already provides `WorkPackage`/`Activ
 **What taktology still owns** (the residue DTC lacks): the wagon **type** layer
 (`WagonType`, closeMatch `IfcTaskType`), the takt **rhythm** (`taktDuration`,
 `TaktTime`), the **work-density** values (`productionRate`, `crewSize`,
-`quantityUnit`), and direct-edge **simplifications** (`hasSuccessor`, `performedBy`)
-over DTC's reified precondition/assignment patterns.
+`quantityUnit`; *later removed — see ADR-10*), and direct-edge **simplifications**
+(`hasSuccessor`, `performedBy`) over DTC's reified precondition/assignment patterns.
 
 **Consequences.**
 - Dropped from v0.2.0: the `Train` class (the train is the `hasSuccessor` chain),
@@ -187,3 +187,71 @@ zones as non-topological, losing the adjacency takt needs.
   `bot:Zone` parent (option A) — a one-line change.
 - A mild divergence from DTC's intent (it deliberately separates working zone from
   topology zone); justified for takt because adjacency/flow is the point.
+
+---
+
+## ADR-9 — Add the process layer: a takt task is `partOfProcess` a `dtc:Process` (v0.4.0)
+
+**Decision.** Add one object property `takt:partOfProcess` (domain `TaktTask`, range
+`dtc:Process`). Reuse DTC's process backbone by *reference* — do **not** mint a takt
+process class, and keep the train as the `hasSuccessor` path (not a class).
+
+**Why.** Ljung (2026)'s **Spatio-Temporal Breakdown Structure (TBS)** frames a takt task
+as one cell of a space × time × responsibility breakdown. The task already carried
+**space** (`performedIn` → `TaktZone`) and **time** (`hasTaktTime` → `TaktTime`);
+`partOfProcess` makes the missing **process / responsibility** membership explicit. This
+closes gap #1 in [`research/decisions/ADR-001`](../research/decisions/ADR-001-research-grounding.md)
+(reuse-vs-mint for the process layer). Aligned to IFC by `skos:closeMatch ifc:IfcRelNests`
+(task-in-process nesting); `rdfs:seeAlso` Schlenger & Borrmann (2024).
+
+**Consequences.**
+- 17 → 18 terms. `dtc:Process` is referenced, not imported (consistent with ADR-3/ADR-7).
+- The diagram renders `dtc:Process` as a reused-external node above `TaktTask`.
+- A tighter `rdfs:subPropertyOf dtc:<…>` is deferred until the exact DTC property is
+  verified against the published TTL; `closeMatch`-only ships now (as `instantiates` /
+  `hasTaktTime` already do).
+
+---
+
+## ADR-10 — Drop the work-density / quantity-takeoff layer (v0.4.1)
+
+**Decision.** Remove `takt:productionRate`, `takt:crewSize` and `takt:quantityUnit`. The
+vocabulary models the **structural** takt backbone — task, process, zone, element
+containment, operand, rhythm — not quantity take-off or duration computation.
+
+**Why.** The duration model (`qty(actsOn) × productionRate ÷ crewSize`, must fit within
+`taktDuration`) is a **downstream consumer concern**, not part of a minimal interchange
+vocabulary. A consumer that wants Work-Density durations supplies the rate/crew from its
+own reference DB and reads `top:area` off the elements — the structural graph is what it
+needs from `takt:`, and that graph is complete without the numbers. Carrying a half-formula
+in the core (a rate, but no labour calendar or productivity model) was scope the vocabulary
+shouldn't own. Supersedes the "work-density values" residue claimed in ADR-7.
+
+**Consequences.**
+- 18 → 15 terms (5 classes, 7 object, **3** datatype). `WagonType` keeps only its identity
+  (`rdfs:label`, `closeMatch IfcTaskType`); the surviving datatypes are the rhythm
+  (`taktDuration`, `slot`) and the `isMilestone` flag.
+- Element geometry (`top:area`) stays — it is TopologicPy's, not a `takt:` term, so the
+  "element + geometry" topology pillar is unaffected.
+- The A-Box drops the rate/crew triples and the end-to-end duration narrative; the diagram's
+  datatype footer drops the `WagonType` group automatically (it is data-driven).
+
+---
+
+## ADR-11 — Elements are zone-scoped; split an element that spans zones
+
+**Decision.** A `top:Element` instance belongs to **one** takt zone; its `top:area` is the
+per-zone quantity. A physical element that spans several zones is **split** into one
+instance per zone (as the A-Box does: `ex:gipsvagg_B5_1` is the wall *set in B5:1*).
+
+**Why.** One element worked by many trades is a **fan-in** — multiple `actsOn` edges into a
+single element node — which the graph handles natively, with no quantity term and no new
+class (the element is defined once, referenced by every task that touches it). The only
+ambiguity is an element that crosses a zone boundary, where `top:area` would otherwise be
+the whole thing and `containsElement` would become many-to-many. Zone-scoping keeps
+`containsElement` and `actsOn` cleanly many-to-one, matching how takt zoning already
+partitions space.
+
+**Consequence.** A modeling **convention**, not an ontology change. If per-task *partial*
+operands are ever needed (a task acting on only part of an element), that is a separate
+decision — deliberately **not** taken here, to keep the core structural (see ADR-10).

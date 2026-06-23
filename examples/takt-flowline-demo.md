@@ -29,8 +29,8 @@ coordinates; the artifact is rebuilt entirely from a controlled mapping.
 
 One row = one **`takt:WagonType`**: a reusable work package the train repeats in
 every zone. The beat (`takt:taktDuration`) is **one week**. `Crew` is the
-anonymized responsible actor; `Unit` is the quantity kind the duration is
-computed against (`takt:quantityUnit`).
+anonymized responsible actor; `Unit` is the quantity kind (area / count) work would
+be metered against — a downstream concern, not part of the takt schema.
 
 | Wagon | Crew | Activity (generic trade) | Unit |
 |:-----:|:----:|--------------------------|:----:|
@@ -134,9 +134,10 @@ WagonType  5.1  ──instantiates──▶  TaktTask
 ```
 
 - **The chain *is* the train.** `hasSuccessor` walks down a zone column (5.1 → 5.2 → 5.3 …).
-- **Duration is computed, not stored:** `quantity (from actsOn) × productionRate ÷ crewSize`,
-  which must fit inside the one-week beat. See [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl) for the
-  end-to-end calculation on wagon 5.1 / zone B5:1.
+- **Duration is a consumer concern, not in the schema:** a consumer reads `top:area` off
+  `actsOn` and applies its own rate/crew model to check the work fits the one-week beat
+  (see [ADR-10](../docs/03-decisions.md)). The structural mapping is what the A-Box
+  [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl) shows.
 - **Buffers** (the blanks) are first-class in takt; whether to model them explicitly is an
   open question for [`docs/03-decisions.md`](../docs/03-decisions.md).
 

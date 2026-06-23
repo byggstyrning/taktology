@@ -56,7 +56,9 @@ shape differs) and `skos:closeMatch`es IFC.
 | `actsOn` (WHAT) | ⊑ `dtc:hasTarget` | `IfcRelAssignsToProduct` (product) |
 | `performedBy` | seeAlso `dtc:hasResourceAssignment`/`requiresResource` | `IfcRelAssignsToProcess` |
 | `hasSuccessor` (the **train**) | seeAlso `dtc:requiresProcess` (reified) | `IfcRelSequence` |
-| `productionRate`/`crewSize`/`taktDuration`/`slot` | — *(takt-specific)* | — |
+| `partOfProcess` | range `dtc:Process` | `IfcRelNests` |
+| `hasTaktTime` | — *(takt-specific)* | — |
+| `taktDuration`/`slot` | — *(takt-specific)* | — |
 | milestone | — | `IfcTask.IsMilestone` |
 
 Two notes. (1) IFC overloads `IfcRelAssignsToProduct` for **both** location and operand

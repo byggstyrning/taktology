@@ -2,15 +2,15 @@
 # Taktology — a minimal, research-grounded vocabulary for takt production planning
 # =============================================================================
 #
-# v0.4.0 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
+# v0.4.1 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
 #          The takt zone also subclasses top:FunctionalZone (hence bot:Zone) for topology
 #          — adjacency, element containment, and TopologicPy-computed geometry.
 #
 # What this is
-#   The canonical takt skeleton: 5 classes, 7 object properties, 6 datatype
-#   properties (18 terms). It adds ONLY what existing ontologies lack — the takt
-#   type-layer (wagon), the takt rhythm, and work-density effort values — and
-#   reuses the DTC ontology for the process / zone / resource backbone.
+#   The canonical takt skeleton: 5 classes, 7 object properties, 3 datatype
+#   properties (15 terms). It adds ONLY what existing ontologies lack — the takt
+#   type-layer (wagon) and the takt rhythm — and reuses the DTC ontology for the
+#   process / zone / resource backbone.
 #
 # How it composes (alignment by REFERENCE, not owl:imports — keeps it lightweight)
 #   dtc:  Digital Twin Construction ontology  -> rdfs:subClassOf / subPropertyOf
@@ -57,12 +57,12 @@
 <https://w3id.org/taktology> a owl:Ontology ;
     dcterms:title "Taktology — takt production planning vocabulary (minimal core)"@en ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.4.0" ;
+    owl:versionInfo "0.4.1" ;
     rdfs:comment """Minimal core takt-planning vocabulary. Specializes the Digital
         Twin Construction (DTC) ontology for takt and adds the takt-specific
-        type-layer, rhythm and work-density values. Aligned to IFC 4.3 by
-        skos:closeMatch; TopologicPy supplies geometry/quantities. Alignment is by
-        reference (no owl:imports) to stay lightweight."""@en ;
+        type-layer and rhythm. Aligned to IFC 4.3 by skos:closeMatch; TopologicPy
+        supplies geometry. Alignment is by reference (no owl:imports) to stay
+        lightweight."""@en ;
     rdfs:seeAlso <https://dtc-ontology.cms.ed.tum.de/ontology/> ;
     rdfs:seeAlso <https://ceur-ws.org/Vol-3824/paper3.pdf> ;
     rdfs:seeAlso <https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl> .
@@ -92,7 +92,7 @@ takt:TaktZone a owl:Class ;
 takt:WagonType a owl:Class ;
     rdfs:label "Wagon type"@en ;
     rdfs:comment """The reusable definition of one trade's work package — e.g.
-        'Enkling gipsväggar', crew 5, 0.58 h/m². The TYPE level; its per-zone
+        'Enkling gipsväggar' (single-side drywall). The TYPE level; its per-zone
         occurrences are takt:TaktTask, linked by takt:instantiates. DTC has no task
         type layer, so this term has no DTC parent and aligns only to IFC's type
         mechanism."""@en ;
@@ -161,11 +161,11 @@ takt:actsOn a owl:ObjectProperty ;
     rdfs:label "acts on"@en ;
     rdfs:comment """The building element(s) this task constructs, installs or operates
         on — the OPERAND, distinct from the zone it sits in (takt:performedIn). A
-        trade-specific SUBSET of the zone's contents; it — not the zone total — is
-        what the quantity->duration formula sums over (a zone is assigned to one trade
-        per takt, per the Work Density Method). Specializes dtc:hasTarget (Task/Action
-        -> building element). Broader than IFC's 'resulting product': covers produced
-        AND operated-on elements."""@en ;
+        trade-specific SUBSET of the zone's contents: a zone is assigned to one trade
+        per takt (per the Work Density Method), so anything computed per trade reads
+        this operand, not the zone total. Specializes dtc:hasTarget (Task/Action ->
+        building element). Broader than IFC's 'resulting product': covers produced AND
+        operated-on elements."""@en ;
     rdfs:domain takt:TaktTask ;
     skos:closeMatch ifc:IfcRelAssignsToProduct ;
     dcterms:source <https://doi.org/10.1061/(ASCE)CO.1943-7862.0002398> .   # tommelein-2022-wdm
@@ -220,31 +220,8 @@ takt:partOfProcess a owl:ObjectProperty ;
     dcterms:source <https://research.chalmers.se/publication/551855> .   # ljung-2026-tbs-integrated-delivery (TBS)
 
 # =============================================================================
-# DATATYPE PROPERTIES (6) — the takt-specific values DTC does not carry
+# DATATYPE PROPERTIES (3) — the takt rhythm + milestone flag DTC does not carry
 # =============================================================================
-
-takt:productionRate a owl:DatatypeProperty ;
-    rdfs:label "production rate"@en ;
-    rdfs:comment "Effort / work-density value in person-hours per unit, e.g. h/m² (BIMTakt; Work Density Method). No DTC equivalent."@en ;
-    rdfs:domain takt:WagonType ;
-    rdfs:range  xsd:decimal ;
-    dcterms:source <https://doi.org/10.1002/bate.202200088> ,                      # becker-tschickardt-2023-bimtakt (h/m²)
-                   <https://doi.org/10.1061/(ASCE)CO.1943-7862.0002398> .          # tommelein-2022-wdm (work density)
-
-takt:crewSize a owl:DatatypeProperty ;
-    rdfs:label "crew size"@en ;
-    rdfs:comment "Number of workers per column (MA/Kol). Compare dtc:quantity on a resource."@en ;
-    rdfs:domain takt:WagonType ;
-    rdfs:range  xsd:integer ;
-    rdfs:seeAlso dtc:quantity ;
-    dcterms:source <https://doi.org/10.1002/bate.202200088> .   # becker-tschickardt-2023-bimtakt
-
-takt:quantityUnit a owl:DatatypeProperty ;
-    rdfs:label "quantity unit"@en ;
-    rdfs:comment "What the wagon's quantity is measured in: AREA | VOLUME | COUNT. Selects which geometric quantity (e.g. top:area vs top:volume) the duration formula reads — a 2D activity over area, a 3D one over volume."@en ;
-    rdfs:domain takt:WagonType ;
-    rdfs:range  xsd:string ;
-    dcterms:source <https://doi.org/10.1002/bate.202200088> .   # becker-tschickardt-2023-bimtakt (2D/3D formula)
 
 takt:taktDuration a owl:DatatypeProperty ;
     rdfs:label "takt duration"@en ;
@@ -275,12 +252,10 @@ takt:isMilestone a owl:DatatypeProperty ;
 #    references their IRIs (keeps it lightweight, per ADR-3). Load DTC when you want
 #    a reasoner to use its axioms.
 #
-# 2. DURATION IS COMPUTED. taktDuration is the fixed beat; a task's required work
-#    content is derived and checked to fit:
-#       qty   = sum( e.area  for e in task.actsOn )       # or e.volume, per quantityUnit
-#       hours = qty * wagonType.productionRate
-#       days  = hours / (wagonType.crewSize * HOURS_PER_DAY)   # must fit within taktDuration
-#    Read the quantity from takt:actsOn (the trade operand), NOT the zone total.
+# 2. DURATION IS A CONSUMER CONCERN (out of the core; see docs ADR-10). taktDuration is
+#    the fixed beat. To check work content fits, a consumer reads top:area off
+#    takt:actsOn (the trade operand, NOT the zone total) and applies its own rate/crew
+#    model — those work-density values are deliberately not part of this vocabulary.
 #
 # 3. THE TRAIN is the takt:hasSuccessor chain (a path), not a class — dropped from
 #    v0.2.0 deliberately. Query it as a path; bundle with a SKOS collection or a DTC
