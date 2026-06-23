@@ -2,15 +2,16 @@
 
 Human catalog of the research grounding the taktology vocabulary. Built with the
 [research-grounded-agents](../../.claude/skills/research-grounded-agents/) skill —
-a discovery sweep on **2026-06-23** across five clusters, then verification.
+a discovery sweep on **2026-06-23** across five clusters, then verification — expanded
+the same day with a sixth **Chalmers** cluster (BIM-takt, breakdown structures, Total BIM).
 
-- **Machine bibliography:** [manifest.json](manifest.json) (37 sources)
+- **Machine bibliography:** [manifest.json](manifest.json) (48 sources)
 - **Per-source notes:** [metadata/](metadata/) (deep notes for design-driving sources)
 - **Decisions the corpus feeds:** [decisions/](decisions/)
 - **Raw discovery runs:** [discoveries/](discoveries/) (ephemeral until promoted)
 
-> **Verification status.** Every source has a real, checked URL. 28/37 are fully
-> verified; 9 are `partial` (a specific field — DOI, author list, venue, or version
+> **Verification status.** Every source has a real, checked URL. 36/48 are fully
+> verified; 12 are `partial` (a specific field — DOI, author list, venue, or version
 > — still needs a manual confirm; flagged per row and in `manifest.json`). No PDFs
 > are committed — open-access mirrors are linked where the publisher copy is paywalled.
 
@@ -79,6 +80,21 @@ Legend — status: `adopted` (shapes the design, cited in a decision) · `influe
 | `keskiniva-2021-monitoring-renovation` | Takt Production Monitoring & Control (renovation) | 2021 | adopted | ◑ |
 | `lerche-2022-takt-kanban-wind` | Takt + Kanban on modular wind turbines | 2022 | candidate | ◑ |
 
+### Cluster F — BIM-takt, breakdown structures & Total BIM (Chalmers group)
+| id | source | yr | status | v |
+|----|--------|----|--------|---|
+| `ljung-2026-tbs-integrated-delivery` | Structuring Construction Projects for Integrated Delivery (TBS) | 2026 | influenced | ✔ |
+| `ljung-2023-prerequisites-bim-takt` | Prerequisites for Takt Planning in a BIM-Based Process | 2023 | influenced | ✔ |
+| `viklund-tallgren-2022-bim-takt-production-control` | BIM-based takt time schedules for production control | 2022 | influenced | ✔ |
+| `viklund-tallgren-2020-bim-tool-collaborative-scheduling-itcon` | BIM-tool for collaborative scheduling (pre-construction) | 2020 | influenced | ✔ |
+| `disney-2023-total-bim-onsite-itcon` | Total BIM on the construction site (Byggstyrning co-author) | 2023 | influenced | ✔ |
+| `viklund-tallgren-2021-collaborative-planning-phd` | Collaborative production planning with BIM (PhD) | 2021 | reference | ✔ |
+| `viklund-tallgren-2021-4d-collaborative-planning-itcon` | 4D modelling via virtual collaborative planning | 2021 | reference | ✔ |
+| `viklund-tallgren-2018-collaborative-planning-lic` | Developing a collaborative planning tool (licentiate) | 2018 | reference | ◑ |
+| `disney-2024-total-bim-celsius-sasbe` | Embracing BIM in its totality (Total BIM case) | 2024 | reference | ✔ |
+| `ljung-2024-work-preparation-ccc` | Significance of Work Preparation Planning | 2024 | reference | ◑ |
+| `ljung-2024-phasing-iso81346-arcom` | Phasing interoperability via ISO 81346 coding | 2024 | reference | ◑ |
+
 ---
 
 ## Overlap clusters (and how teams confuse their members)
@@ -116,6 +132,18 @@ branch — pick deliberately or bridge.
 (`seppanen-ballard-pesonen-2010`). Theory papers (`lehtovaara-2021-flow-cme`)
 synthesize the case studies they cite — don't treat a synthesis as a single case.
 
+**Cluster F · BIM-takt / breakdown / Total BIM (Chalmers)** — anchor
+`viklund-tallgren-2021-collaborative-planning-phd`.
+*Overlap risk:* one research group, many overlapping outputs — the ITcon journal papers
+report sub-results of the PhD; the two CONVR papers (`viklund-tallgren-2022-...` vs
+`ljung-2023-prerequisites-...`) are the control-focused vs prerequisites take on the
+*same* BIM+takt idea; the two Total BIM papers (`disney-2023-...` vs `disney-2024-...`)
+are the on-site/journal vs definitional-case treatments of *one* concept. Distinct from
+KIT's takt theory (Cluster A): this is BIM-integration and breakdown-structure in Swedish
+practice, not takt method per se. Cite `ljung-2026-tbs-integrated-delivery` for the
+spatio-temporal **structure** and `ljung-2024-phasing-iso81346-arcom` for a zone/phase
+**identifier/coding** scheme (relevant to taktology's namespace/coding open item).
+
 ---
 
 ## Topic coverage matrix
@@ -137,6 +165,10 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
 | Topology & property-graph representation | `jabi-2018-topologic` ● `topologicpy-ontology` ● | `zhu-2025-ifc-graph` ◐ |
 | Empirical case studies / sectors | `frandson-2016-interiors-hospital` ● `lehtovaara-2019-residential` ● | `lerche-2022-takt-kanban-wind` ◐ |
 | Digital takt tools / monitoring | `keskiniva-2021-monitoring-renovation` ● | `melzner-2019-bim-takt-requirements` ◐ |
+| Spatio-temporal / work breakdown structures | `ljung-2026-tbs-integrated-delivery` ● | `ljung-2024-work-preparation-ccc` ◐ `ljung-2024-phasing-iso81346-arcom` ◐ `dlouhy-2016-three-level` ◐ |
+| BIM-based takt in practice (prerequisites/control) | `viklund-tallgren-2022-bim-takt-production-control` ● `ljung-2023-prerequisites-bim-takt` ● | `becker-tschickardt-2023-bimtakt` ◐ `melzner-2019-bim-takt-requirements` ◐ |
+| Collaborative BIM planning & 4D scheduling | `viklund-tallgren-2021-collaborative-planning-phd` ● `viklund-tallgren-2020-bim-tool-collaborative-scheduling-itcon` ● | `viklund-tallgren-2021-4d-collaborative-planning-itcon` ◐ `viklund-tallgren-2018-collaborative-planning-lic` ◐ |
+| Total BIM / single source of truth (deployment) | `disney-2023-total-bim-onsite-itcon` ● `disney-2024-total-bim-celsius-sasbe` ● | `ljung-2026-tbs-integrated-delivery` ◐ |
 
 ---
 
@@ -162,7 +194,10 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
    indirectly (zones via `dlouhy-2016-three-level`, sizing via `tommelein-2022-wdm`)
    but no paper defines the wagon/train vocabulary formally. taktology's
    `docs/02-vocabulary.md` is, in effect, original synthesis here — treat its
-   definitions as ours, not as cited fact.
+   definitions as ours, not as cited fact. *Partially eased 2026-06-23:*
+   `ljung-2026-tbs-integrated-delivery` gives a citable name — **Spatio-Temporal
+   Breakdown Structure (TBS)** — for the zone×time *structure* (the `TaktZone`×`TaktTime`
+   core). The wagon/train *naming* remains ours.
 
 4. **Genealogy root unverified.** Bulhões et al. (2005), cited by
    `haghsheno-2016-history` as the first IGLC use of "takt," was not independently
@@ -189,3 +224,10 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
   confirm DTC version (v2 exists), extract Schlenger's ontology terms for a finer map.
 - Gaps #2 (geometry-driven zoning), #3 (wagon/train vocabulary), #4 (genealogy roots)
   remain **open** — re-run discovery.
+- **Chalmers cluster (F) added 2026-06-23** (11 sources, from two user-supplied seeds):
+  strengthens *BIM-based takt in practice*, *collaborative BIM scheduling / 4D*, and
+  *Total BIM / single-source-of-truth* coverage. `ljung-2026-tbs-integrated-delivery`
+  names the spatio-temporal breakdown structure (eases gap #3's *structure*);
+  `disney-2023-total-bim-onsite-itcon` is co-authored by Byggstyrning (this repo's org),
+  pinning down the deployment context. Follow-ups: confirm OA/title for the two 2024
+  Ljung papers; mine Bosch-Sijtsema's profile; consider ISO 81346 coding for zone IDs.

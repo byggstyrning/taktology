@@ -45,7 +45,7 @@ at BOT, so they compose.
 | [`schema/takt-topology-schema.yaml`](schema/takt-topology-schema.yaml) | Node + edge definitions for a **property-graph build** (Neo4j / NetworkX / rdflib), plus the generation loop. |
 | [`scripts/takt_production_ingester_plan.md`](scripts/takt_production_ingester_plan.md) | Implementation plan for an **IFC + wagon-table → takt graph** ingester. |
 | [`docs/`](docs/) | Architecture, vocabulary, design decisions (ADRs), and BIMTakt background. |
-| [`research/`](research/) | **Research corpus** — 37 verified sources grounding the design ([INDEX](research/INDEX.md), [manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). |
+| [`research/`](research/) | **Research corpus** — 48 verified sources grounding the design ([INDEX](research/INDEX.md), [manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). Includes a Chalmers cluster (BIM-takt, breakdown structures, Total BIM). |
 
 ## The core idea
 
@@ -74,8 +74,9 @@ Full rationale in [docs/03-decisions.md](docs/03-decisions.md).
 ## Research grounding
 
 The design is evidence-based, not vibes. [`research/`](research/) is a curated corpus
-of **37 verified sources** across takt theory, location-based planning, takt+BIM
-automation, IFC/ontologies, and implementation case studies — each tracing to a
+of **48 verified sources** across takt theory, location-based planning, takt+BIM
+automation, IFC/ontologies, implementation case studies, and a Chalmers cluster
+(BIM-takt, spatio-temporal breakdown structures, Total BIM) — each tracing to a
 decision via [ADR-001](research/decisions/ADR-001-research-grounding.md). The corpus's
 headline finding: **no takt-specific ontology exists** in the literature (taktology
 fills the gap), and geometry-driven takt zoning has little prior art (a build risk,
