@@ -40,6 +40,7 @@
 # -----------------------------------------------------------------------------
 <https://w3id.org/taktology> a owl:Ontology ;
     dcterms:title "Taktology — takt production planning vocabulary"@en ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     owl:versionInfo "0.2.0" ;
     rdfs:comment """A minimal interchange vocabulary for takt / Lean construction
         production planning. Provides the process layer (takt tasks, wagons,

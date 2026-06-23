@@ -81,6 +81,7 @@ riot --validate ontology/takt.ttl examples/lumi-b5-1.ttl
 
 ## License
 
-Not yet set. Note the referenced TopologicPy ontology is AGPLv3; this repo only
-*references* its namespace (it imports no TopologicPy code), so it is not bound by
-AGPL — but pick a license deliberately before sharing.
+[CC BY 4.0](LICENSE) — Creative Commons Attribution 4.0 International. Reuse and
+adapt freely (including commercially) with attribution. The referenced TopologicPy
+ontology is AGPLv3, but this repo only references its namespace (it imports no
+TopologicPy code), so it is not bound by AGPL.
