@@ -8,12 +8,12 @@ schema entities — and they do **not** map one-to-one.
 
 | Takt / Lean term | What it is | In this repo (v0.3.0) |
 |---|---|---|
-| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The LUMI sheet's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `top:FunctionalZone` (⊑ `bot:Zone`) + `dtc:AsPlannedWorkingZone` |
+| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The demo plan's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `top:FunctionalZone` (⊑ `bot:Zone`) + `dtc:AsPlannedWorkingZone` |
 | **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer) |
 | **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` ⊑ `dtc:WorkPackage` |
 | **Train** | The ordered convoy of wagons. **Not an entity** — the `hasSuccessor` chain (a path). | *no class* — query the `takt:hasSuccessor` chain |
-| **Takt time** | The fixed rhythm (1 week in the LUMI plan) each wagon occupies. | `takt:TaktTime` (the beat = `takt:taktDuration`) |
-| **Crew** (Dexx) | The gang performing a wagon. | `takt:Crew` ⊑ `dtc:AsPlannedWorkerCrew` |
+| **Takt time** | The fixed rhythm (1 week in the demo plan) each wagon occupies. | `takt:TaktTime` (the beat = `takt:taktDuration`) |
+| **Crew** (the `SUB-xx` code) | The gang performing a wagon. | `takt:Crew` ⊑ `dtc:AsPlannedWorkerCrew` |
 
 ## "Wagon" and "train" are not single entities — the key subtlety
 
@@ -31,11 +31,11 @@ schema entities — and they do **not** map one-to-one.
 
 | | Reading A *(default)* | Reading B |
 |---|---|---|
-| A train is… | the **cross-trade convoy** through one zone: 5.1 → 5.2 → 5.3 → 6.1 → … | one **wagon's run** across all zones: 5.2 in B5:1 → A5:1 → C5 … |
+| A train is… | the **cross-trade convoy** through one zone: 5.1 → 5.2 → 5.3 → 6.1 → … | one **wagon's run** across all zones: 5.1 in B5:1 → A5:1 → C5 … |
 | `hasSuccessor` goes between | different wagons, same zone | same wagon, adjacent zones |
-| Matches | the LUMI rows read left-to-right | a single trade tracked across the sheet |
+| Matches | the demo plan rows read left-to-right | a single trade tracked across the sheet |
 
-The LUMI sheet almost certainly encodes **Reading A**. One line of the generation
+The demo plan almost certainly encodes **Reading A**. One line of the generation
 loop changes between them — but it changes the entire graph shape, so confirm with
 the team.
 

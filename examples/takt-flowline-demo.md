@@ -3,7 +3,7 @@
 A small, **fully anonymized** slice of a real takt production plan
 (*Produktionstidplan*), kept here as a concrete pattern to discuss the
 [ontology](../ontology/takt.ttl) against. It is the companion *source* for the
-worked A-Box in [`lumi-b5-1.ttl`](lumi-b5-1.ttl).
+worked A-Box in [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl).
 
 Files:
 
@@ -122,21 +122,21 @@ The full wagon sequence for the two Plan-5 zones, week by week. Blanks are
 
 ## How it maps to the ontology
 
-A single coloured cell — say **wagon `5.2` in zone `B5:1` at `T05`** — becomes:
+A single coloured cell — say **wagon `5.1` in zone `B5:1` at `T04`** — becomes:
 
 ```
-WagonType  5.2  ──instantiates──▶  TaktTask
+WagonType  5.1  ──instantiates──▶  TaktTask
                                      ├─ performedIn  ▶ TaktZone  B5:1
                                      ├─ actsOn       ▶ Element   (the operand → quantity)
-                                     ├─ performedBy  ▶ Crew      SUB-04
-                                     ├─ hasTaktTime  ▶ TaktTime  (slot T05, taktDuration P1W)
-                                     └─ hasSuccessor ▶ TaktTask  5.3 @ B5:1   (the train edge)
+                                     ├─ performedBy  ▶ Crew      SUB-03
+                                     ├─ hasTaktTime  ▶ TaktTime  (slot T04, taktDuration P1W)
+                                     └─ hasSuccessor ▶ TaktTask  5.2 @ B5:1   (the train edge)
 ```
 
-- **The chain *is* the train.** `hasSuccessor` walks down a zone column (5.2 → 5.3 → 6.1 …).
+- **The chain *is* the train.** `hasSuccessor` walks down a zone column (5.1 → 5.2 → 5.3 …).
 - **Duration is computed, not stored:** `quantity (from actsOn) × productionRate ÷ crewSize`,
-  which must fit inside the one-week beat. See [`lumi-b5-1.ttl`](lumi-b5-1.ttl) for the
-  end-to-end calculation on wagon 5.2 / zone B5:1.
+  which must fit inside the one-week beat. See [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl) for the
+  end-to-end calculation on wagon 5.1 / zone B5:1.
 - **Buffers** (the blanks) are first-class in takt; whether to model them explicitly is an
   open question for [`docs/03-decisions.md`](../docs/03-decisions.md).
 

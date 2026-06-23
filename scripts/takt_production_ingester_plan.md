@@ -100,7 +100,7 @@ Guard with `HAS_TOPOLOGICPY` and the entity ceiling. Use it ONLY for:
 ## 7. Serialize
 
 - RDF (Turtle) using `takt:` + `top:` — the `Element`/`Relationship` objects map
-  1:1 onto `examples/lumi-b5-1.ttl`. Keep `ifc:` as `closeMatch` annotations only;
+  1:1 onto `examples/takt-flowline-demo-b5-1.ttl`. Keep `ifc:` as `closeMatch` annotations only;
   **do not import ifcOWL**.
 - Optional **separate** IFC-SPF converter (`IfcTask`/`IfcRelSequence`/
   `IfcSpatialZone`) for handoff to IFC-native tools. The `closeMatch` mappings make

@@ -1,6 +1,6 @@
 # =============================================================================
-# Worked A-Box — wagon 5.2 ("Enkling gipsväggar") in takt zone B5:1
-# Source: LUMI production plan (Produktionstidplan), row 13.
+# Worked A-Box — wagon 5.1 (Drywall — first-side boarding) in takt zone B5:1
+# Source: anonymized takt-flowline-demo fixture (wagon 5.1, zone B5:1).
 # Conforms to ontology/takt.ttl v0.3.1 (minimal core; TaktZone ⊑ top:FunctionalZone
 # [⊑ bot:Zone] + dtc:AsPlannedWorkingZone).
 #
@@ -8,7 +8,7 @@
 #   bot:containsElement (quantities), bot:adjacentZone (flow), dtc:isLocatedIn (building).
 # Calendar dates reuse DTC (dtc:startTime / dtc:endTime); zone area from TopologicPy.
 #
-# Validate:  riot --validate ../ontology/takt.ttl lumi-b5-1.ttl   (Apache Jena)
+# Validate:  riot --validate ../ontology/takt.ttl takt-flowline-demo-b5-1.ttl   (Apache Jena)
 # Values marked (illustrative) are placeholders so the calculation reads end-to-end.
 # =============================================================================
 
@@ -16,7 +16,7 @@
 @prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology#> .
 @prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
 @prefix bot:  <https://w3id.org/bot#> .
-@prefix ex:   <https://w3id.org/taktology/examples/lumi#> .
+@prefix ex:   <https://w3id.org/taktology/examples/demo#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -24,8 +24,8 @@
 # -----------------------------------------------------------------------------
 # WAGON TYPE — the reusable template (activity-structure row, BIMTakt Bild 5)
 # -----------------------------------------------------------------------------
-ex:wagon_5_2 a takt:WagonType ;
-    rdfs:label "Enkling gipsväggar"@sv ;
+ex:wagon_5_1 a takt:WagonType ;
+    rdfs:label "Drywall — first-side boarding"@en ;
     takt:productionRate 0.58 ;          # h/m²  (auto-suggested from reference DB)
     takt:crewSize       5 ;
     takt:quantityUnit   "AREA" ;
@@ -35,10 +35,11 @@ ex:reference_database a prov:Entity ;
     rdfs:label "BIMTakt reference project database"@en .
 
 # -----------------------------------------------------------------------------
-# CREW — the Dexx code on the row (subclass of dtc:AsPlannedWorkerCrew)
+# CREW — the (anonymized) subcontractor code on the row
+# (a takt:Crew ⊑ dtc:AsPlannedWorkerCrew)
 # -----------------------------------------------------------------------------
-ex:crew_DE14 a takt:Crew ;
-    rdfs:label "DE14" .
+ex:crew_SUB_03 a takt:Crew ;
+    rdfs:label "SUB-03" .
 
 # -----------------------------------------------------------------------------
 # TAKT ZONE — a takt:TaktZone, hence a top:FunctionalZone AND a bot:Zone AND a
@@ -62,23 +63,23 @@ ex:storey_plan5 a bot:Storey ;               # bot:Storey ⊑ bot:Zone — valid
 # duration must read from takt:actsOn (operand) and not the zone total.
 ex:gipsvagg_B5_1 a top:Element ;             # top:Element ⊑ bot:Element
     rdfs:label "Gypsum wall set, B5:1"@en ;
-    top:area 184.0 .                         # m²  (the operand quantity for wagon 5.2)
+    top:area 184.0 .                         # m²  (the operand quantity for wagon 5.1)
 
 ex:slab_B5_1 a top:Element ;
     rdfs:label "Floor slab, B5:1"@en ;
-    top:area 95.0 .                          # belongs to the screed wagon, NOT 5.2
+    top:area 95.0 .                          # belongs to the screed wagon, NOT 5.1
 
 # -----------------------------------------------------------------------------
 # TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask = dtc:WorkPackage
 # -----------------------------------------------------------------------------
-ex:task_5_2_B5_1 a takt:TaktTask ;
-    rdfs:label "5.2 @ B5:1" ;
-    takt:instantiates ex:wagon_5_2 ;        # -> template
+ex:task_5_1_B5_1 a takt:TaktTask ;
+    rdfs:label "5.1 @ B5:1" ;
+    takt:instantiates ex:wagon_5_1 ;        # -> template
     takt:performedIn  ex:zone_B5_1 ;        # WHERE (location / work area)
     takt:actsOn       ex:gipsvagg_B5_1 ;    # WHAT  (operand — drives the quantity)
-    takt:performedBy  ex:crew_DE14 ;
-    takt:hasTaktTime  ex:time_5_2_B5_1 ;
-    takt:hasSuccessor ex:task_5_3_B5_1 ;    # the train edge (the chain IS the train)
+    takt:performedBy  ex:crew_SUB_03 ;
+    takt:hasTaktTime  ex:time_5_1_B5_1 ;
+    takt:hasSuccessor ex:task_5_2_B5_1 ;    # the train edge (the chain IS the train)
     takt:isMilestone  false .
 
 # -----------------------------------------------------------------------------
@@ -88,8 +89,8 @@ ex:task_5_2_B5_1 a takt:TaktTask ;
 #   days  = 106.72 / (5 * 8) = ~2.67 crew-days  ->  fits inside the 1-week takt
 #   => taktDuration = P1W (the beat); calendar dates via DTC.
 # -----------------------------------------------------------------------------
-ex:time_5_2_B5_1 a takt:TaktTime ;
-    takt:slot         4 ;               # takt week (illustrative — confirm vs sheet)
+ex:time_5_1_B5_1 a takt:TaktTime ;
+    takt:slot         4 ;               # takt week T04 — matches the demo flowline
     takt:taktDuration "P1W"^^xsd:duration ;
     dtc:startTime     "2024-01-22T07:00:00"^^xsd:dateTime ;   # (illustrative) reuse DTC for dates
     dtc:endTime       "2024-01-26T16:00:00"^^xsd:dateTime .   # (illustrative)
@@ -97,6 +98,6 @@ ex:time_5_2_B5_1 a takt:TaktTime ;
 # -----------------------------------------------------------------------------
 # Successor stub — just enough for the hasSuccessor edge to resolve.
 # -----------------------------------------------------------------------------
-ex:task_5_3_B5_1 a takt:TaktTask ;
-    rdfs:label "5.3 @ B5:1" ;
+ex:task_5_2_B5_1 a takt:TaktTask ;
+    rdfs:label "5.2 @ B5:1" ;
     takt:performedIn ex:zone_B5_1 .

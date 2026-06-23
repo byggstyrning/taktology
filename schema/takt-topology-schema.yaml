@@ -2,7 +2,7 @@
 # Takt topology schema — node + edge definitions for a property-graph (LPG) build
 # =============================================================================
 # This is the SPEC a topological / graph-construction script drives from. It maps
-# 1:1 onto the takt.ttl T-Box and the lumi-b5-1.ttl A-Box. Adapt the syntax to the
+# 1:1 onto the takt.ttl T-Box and the takt-flowline-demo-b5-1.ttl A-Box. Adapt the syntax to the
 # target: Neo4j/Cypher, NetworkX, rdflib (Turtle), or an IfcOpenShell writer.
 #
 # IfcRel* relationships become typed, directed, property-bearing EDGES — the
@@ -158,7 +158,7 @@ generation: |
 # =============================================================================
 # Notes
 #   - applies(wagon, zone): project-specific predicate. Make it pluggable (a column
-#     in the wagon table or a callback), not hardcoded. The LUMI sheet shows TAKPLAN,
+#     in the wagon table or a callback), not hardcoded. The demo plan shows TAKPLAN,
 #     PAVILJONG and PLAN-2/4/5 carrying different wagon sets.
 #   - e.trade classification (which wagon owns which element) is new, project-specific
 #     work — key it on IfcType + material or a Pset. Without it, actsOn cannot be
