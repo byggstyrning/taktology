@@ -370,12 +370,13 @@
       "authors": "Schlenger, J.; Yeung, T.; Bus, N.; Sacks, R.; Borrmann, A.; et al.",
       "year": 2023,
       "venue": "TU München / BIM2TWIN (EU H2020)",
-      "url": "https://dtc-ontology.cms.ed.tum.de/ontology/index.html",
+      "url": "https://dtc-ontology.cms.ed.tum.de/ontology/",
+      "oa_url": "https://dtc-ontology.cms.ed.tum.de/ontology/ontology.ttl",
       "access": "open",
       "cluster": "ifc-ontology-graph",
-      "status": "candidate",
+      "status": "adopted",
       "verified": "partial",
-      "note": "Current version unconfirmed (release 2023-11-01 read off draft). Imports BOT; reusable process/resource/status vocabulary — decide adopt-vs-map."
+      "note": "ADOPTED into takt.ttl v0.3.0 as the process/zone/resource backbone (TaktTask<=WorkPackage, TaktZone<=AsPlannedWorkingZone, Crew<=AsPlannedWorkerCrew, performedIn<=isPerformedIn, actsOn<=hasTarget). Base IRI https://dtc-ontology.cms.ed.tum.de/ontology# ; imports BOT 0.3.2 + BEO + GeoSPARQL — all confirmed by reading the TTL on 2026-06-23. VERSION caveat: a v2 exists at /ontology/v2/; terms above read from the v1 TTL."
     },
     {
       "id": "jabi-2018-topologic",

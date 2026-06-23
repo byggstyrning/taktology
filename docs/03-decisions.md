@@ -111,3 +111,39 @@ as the semantic anchor (every term `closeMatch`es its IFC counterpart). You only
 choose whether the **.ifc file** is your transport format. Format ≠ semantics. A
 converter (driven by the `closeMatch` mappings) bridges to IFC-native tools when
 needed.
+
+---
+
+## ADR-7 — Reuse the DTC ontology; ship a minimal core (v0.3.0)
+
+**Decision.** Rebuild `takt.ttl` as a **minimal core** (5 classes, 6 object, 6
+datatype = 17 terms) that **reuses the Digital Twin Construction (DTC) ontology** for
+the process / working-zone / resource backbone, instead of minting a self-contained
+vocabulary. Alignment is by *reference* (`rdfs:subClassOf`/`subPropertyOf`), **not**
+`owl:imports` — consistent with ADR-3's "don't import the heavy thing."
+
+**Why.** This resolves the open reuse-vs-mint question from
+[`research/decisions/ADR-001`](../research/decisions/ADR-001-research-grounding.md)
+(corpus gap #1: no takt ontology exists, but DTC and Schlenger's schedule ontology
+do). Reading DTC's published TTL showed it already provides `WorkPackage`/`Activity`/
+`Task`, `AsPlannedWorkingZone`, `AsPlannedWorkerCrew`, `isPerformedIn` and `hasTarget`
+— a near-exact fit. Schlenger & Borrmann (2024), the schedule↔IFC linking method,
+*builds on DTC*, so aligning to DTC aligns to that work too.
+
+**What taktology still owns** (the residue DTC lacks): the wagon **type** layer
+(`WagonType`, closeMatch `IfcTaskType`), the takt **rhythm** (`taktDuration`,
+`TaktTime`), the **work-density** values (`productionRate`, `crewSize`,
+`quantityUnit`), and direct-edge **simplifications** (`hasSuccessor`, `performedBy`)
+over DTC's reified precondition/assignment patterns.
+
+**Consequences.**
+- Dropped from v0.2.0: the `Train` class (the train is the `hasSuccessor` chain),
+  `hasPredecessor`, `hasMember`, `crewCode`, `start`/`finish` (use `dtc:startTime`/
+  `endTime`), `plan`. Net 24 → 17 terms.
+- Every term carries `dcterms:source` → the grounding corpus source(s).
+- DTC reifies sequencing/assignment; takt's direct edges relate by `seeAlso`, not
+  `subPropertyOf` — a deliberate, documented divergence.
+- The whole takt plan (`IfcWorkSchedule`) stays **out** of the minimal core; add it
+  (or `dtc:ConstructionSchedule`) only if a plan-level container is needed.
+- Open: verify the DTC **version** (a v2 exists) and extract Schlenger's specific
+  terms (its PDF was not machine-readable here) before any finer Schlenger mapping.

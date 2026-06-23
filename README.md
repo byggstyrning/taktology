@@ -4,12 +4,14 @@ A minimal, modular interchange vocabulary for **takt / Lean construction product
 planning** — the kind of plan you build as a coloured grid of *wagons* flowing
 through *takt zones* over time.
 
-It models the **process** half of takt planning (takt tasks, wagons, trains, crews,
-takt time) as a thin layer on top of the [TopologicPy ontology](https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl)
-(`top:`), which supplies the **spatial** half (zones, elements, geometry, graph) and
-already aligns to both [BOT](https://w3id.org/bot#) and IFC. Takt terms are aligned
-to IFC process concepts (`IfcTask`, `IfcRelSequence`, …) by `skos:closeMatch`
-annotation — **not** by importing the heavy ifcOWL schema.
+It models the **takt-specific** half of takt planning (the wagon type-layer, the takt
+rhythm, work-density effort values) as a thin layer that **reuses the
+[DTC ontology](https://dtc-ontology.cms.ed.tum.de/ontology/)** (`dtc:`) for the
+process / working-zone / crew backbone, uses [TopologicPy](https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl)
+(`top:`) as the geometry/graph engine, and is anchored to IFC process concepts
+(`IfcTask`, `IfcRelSequence`, …) by `skos:closeMatch` — **not** by importing the heavy
+ifcOWL schema. DTC itself imports [BOT](https://w3id.org/bot#); `dtc:` and `top:` meet
+at BOT, so they compose.
 
 > Origin: this repo is the synthesis of a research conversation working from the
 > BIMTakt paper (Becker & Tschickardt, 2023) toward an interoperable,
@@ -19,7 +21,7 @@ annotation — **not** by importing the heavy ifcOWL schema.
 
 | Path | What it is |
 |---|---|
-| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box). ~24 terms: 6 classes, 8 object properties, 10 datatype properties. |
+| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.3.0 minimal core. 17 terms: 5 classes, 6 object properties, 6 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC + IFC. |
 | [`examples/lumi-b5-1.ttl`](examples/lumi-b5-1.ttl) | A worked **A-Box** — wagon 5.2 in zone B5:1 from a real takt plan, exercising every term, with duration computed end-to-end. |
 | [`schema/takt-topology-schema.yaml`](schema/takt-topology-schema.yaml) | Node + edge definitions for a **property-graph build** (Neo4j / NetworkX / rdflib), plus the generation loop. |
 | [`scripts/takt_production_ingester_plan.md`](scripts/takt_production_ingester_plan.md) | Implementation plan for an **IFC + wagon-table → takt graph** ingester. |
@@ -35,20 +37,23 @@ annotation — **not** by importing the heavy ifcOWL schema.
                                │     operand subset → drives duration                 area/
                   hasSuccessor │                                                      volume)
                                ▼
-                            TaktTask   (next wagon → the train = a top:Path)
+                            TaktTask   (next wagon → the train = the hasSuccessor chain)
 ```
 
 A **wagon** is a trade's work package; its per-zone occurrences are **takt tasks**;
-the ordered chain of tasks is the **train**; the **takt zone** is the work area they
-flow through. One graph traversal runs from a task to the geometry that drives its
-duration (`task → actsOn → element → area`) — which a spreadsheet cannot do.
+the ordered chain of tasks is the **train** (no class — just the `hasSuccessor` chain);
+the **takt zone** is the work area they flow through. One graph traversal runs from a
+task to the geometry that drives its duration (`task → actsOn → element → area`) —
+which a spreadsheet cannot do.
 
 ## Design stance (the short version)
 
-- **Author only the gap.** `top:` already provides zones, elements, geometry, graph,
-  and the BOT+IFC alignments. This repo adds *only* the process layer `top:` lacks.
-- **`closeMatch`, not import.** IFC is the semantic anchor via annotation; ifcOWL's
-  ~14k axioms are never imported. Round-tripping to `.ifc` is a converter's job.
+- **Author only the gap.** DTC already provides the process, working zones, and crews;
+  `top:` computes the geometry. This repo adds *only* what neither has — the wagon
+  type-layer, the takt rhythm, and work-density values.
+- **Reuse DTC; align, don't import.** Takt terms subclass DTC by *reference* (no
+  `owl:imports`); IFC is the `skos:closeMatch` anchor; ifcOWL's ~14k axioms are never
+  imported. Round-tripping to `.ifc` is a converter's job.
 - **You haven't left IFC.** You keep IFC's process model as the reference; you only
   choose whether the `.ifc` file is your transport format. Format ≠ semantics.
 - **`actsOn` ≠ `performedIn`.** A task's *operand* (the elements it builds/operates
@@ -70,13 +75,16 @@ Start at [research/INDEX.md](research/INDEX.md).
 
 ## Validating the ontology
 
-No network was available when these files were authored, so they were syntax-checked
-structurally, **not** parsed by a real RDF engine. Before relying on them:
+Both files **parse cleanly** as Turtle (rdflib 7.6, v0.3.0): `takt.ttl` = 129 triples,
+`lumi-b5-1.ttl` = 38 triples. A consistency check confirms the A-Box uses **only**
+terms the T-Box defines (all 17), and every term carries a `dcterms:source`. What is
+**not** yet done: a reasoner run against the *imported* DTC/IFC ontologies (alignment
+is by reference, so load DTC to check the `subClassOf`/`subPropertyOf` axioms hold).
 
 ```bash
-# Apache Jena
-riot --validate ontology/takt.ttl examples/lumi-b5-1.ttl
-# or load both in Protégé and run a reasoner for a consistency check
+python -c "import rdflib; rdflib.Graph().parse('ontology/takt.ttl')"   # syntax
+riot --validate ontology/takt.ttl examples/lumi-b5-1.ttl               # Apache Jena
+# or load both + DTC in Protégé and run a reasoner for full consistency
 ```
 
 ## Open items before publishing
@@ -84,10 +92,12 @@ riot --validate ontology/takt.ttl examples/lumi-b5-1.ttl
 - **Namespace.** `https://w3id.org/taktology#` is the *intended* permanent
   namespace; the w3id.org redirect must be registered first. Until then it is a
   placeholder and does not resolve.
-- **`top:` namespace URI.** Verify the exact TopologicPy ontology namespace against
-  the published `.ttl` before relying on `top:FunctionalZone` / `top:Element` /
-  `top:Path` / `top:area`.
-- **License.** Not yet chosen — see note below.
+- **`top:` / `dtc:` namespace URIs.** Verify the exact TopologicPy namespace against
+  its published `.ttl`, and the **DTC version** (a v2 exists at `.../ontology/v2/`;
+  v0.3.0 maps to the v1 terms).
+- **Schlenger mapping.** Its ontology terms weren't extractable here (PDF unreadable);
+  a finer `takt:`↔Schlenger map is deferred (DTC covers the substance — Schlenger
+  builds on DTC).
 - **Train Reading A vs B.** The vocabulary encodes Reading A (cross-trade convoy).
   Confirm with the team; it changes where every sequence edge goes.
 

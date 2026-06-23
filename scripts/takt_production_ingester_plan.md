@@ -84,7 +84,8 @@ for wagon in wagon_types:
 ## 5. Sequence / train edges
 
 - **Reading A (default):** per zone, order tasks by wagon order, link consecutive
-  with `takt:hasSuccessor`; emit a `takt:Train` with `hasMember` edges.
+  with `takt:hasSuccessor`. The train *is* that chain — v0.3.0 has no `Train` class;
+  query the path (or bundle with a SKOS collection if you must name one).
 - **Reading B:** sequence same-wagon occurrences across **adjacent** zones (use the
   egress adjacency graph to order). Switch via `takt_config.train_reading`.
 

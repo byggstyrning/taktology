@@ -6,14 +6,14 @@ schema entities — and they do **not** map one-to-one.
 
 ## The terms
 
-| Takt / Lean term | What it is | In this repo |
+| Takt / Lean term | What it is | In this repo (v0.3.0) |
 |---|---|---|
-| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The LUMI sheet's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `top:FunctionalZone` |
-| **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` |
-| **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` |
-| **Train** | The ordered convoy of wagons. **Not a single entity** — a path through the task graph. | `takt:Train` ⊑ `top:Path` |
-| **Takt time** | The fixed rhythm (1 week in the LUMI plan) each wagon occupies. | `takt:TaktTime` |
-| **Crew** (Dexx) | The gang performing a wagon. | `takt:Crew` |
+| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The LUMI sheet's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `dtc:AsPlannedWorkingZone` |
+| **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer) |
+| **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` ⊑ `dtc:WorkPackage` |
+| **Train** | The ordered convoy of wagons. **Not an entity** — the `hasSuccessor` chain (a path). | *no class* — query the `takt:hasSuccessor` chain |
+| **Takt time** | The fixed rhythm (1 week in the LUMI plan) each wagon occupies. | `takt:TaktTime` (the beat = `takt:taktDuration`) |
+| **Crew** (Dexx) | The gang performing a wagon. | `takt:Crew` ⊑ `dtc:AsPlannedWorkerCrew` |
 
 ## "Wagon" and "train" are not single entities — the key subtlety
 
@@ -21,10 +21,11 @@ schema entities — and they do **not** map one-to-one.
   occurrences (one per zone), linked by `instantiates`. When a planner says "wagon
   5.2" they mean the type; when they point at a cell, an occurrence. Same word, two
   levels.
-- A **train** is *not a class you instantiate as a thing* — it is a **relationship
-  structure**: the ordered `hasSuccessor` chain over a set of wagons. If a spec says
-  "create a task called 'train'," push back — model it as the sequence chain (and a
-  `top:Path` bundle), which preserves the queryability of the wagons inside it.
+- A **train** is *not a class* — it is a **relationship structure**: the ordered
+  `hasSuccessor` chain over a set of wagons. (v0.2.0 had a `takt:Train` class; v0.3.0
+  dropped it — the minimal core represents the train purely as the chain.) If a spec
+  says "create a task called 'train'," push back — query the sequence chain, which
+  preserves the queryability of the wagons inside it.
 
 ## Train: Reading A vs Reading B — pin this down before generating
 
@@ -38,23 +39,29 @@ The LUMI sheet almost certainly encodes **Reading A**. One line of the generatio
 loop changes between them — but it changes the entire graph shape, so confirm with
 the team.
 
-## Full IFC mapping
+## Full mapping — `takt:` ↔ DTC ↔ IFC
 
-| Takt concept | IFC | `takt:` term |
+Each takt term reuses DTC (`rdfs:subClassOf`/`subPropertyOf`, or `seeAlso` where DTC's
+shape differs) and `skos:closeMatch`es IFC.
+
+| `takt:` term | DTC (reused) | IFC (closeMatch) |
 |---|---|---|
-| Wagon (template) | `IfcTaskType` | `WagonType` |
-| Wagon (occurrence / cell) | `IfcTask` | `TaktTask` |
-| Takt zone | `IfcSpatialZone` | `TaktZone` |
-| Crew | `IfcCrewResource` / `IfcLaborResource` | `Crew` |
-| occurrence → template | `IfcRelDefinesByType` | `instantiates` |
-| task → location (WHERE) | `IfcRelAssignsToProduct` (location sense) | `performedIn` |
-| task → operand (WHAT) | `IfcRelAssignsToProduct` (product sense) | `actsOn` |
-| crew → task | `IfcRelAssignsToProcess` | `performedBy` |
-| predecessor → successor (the **train**) | `IfcRelSequence` | `hasSuccessor` |
-| takt time / rhythm | `IfcTaskTime` / `IfcTaskTimeRecurring` | `TaktTime` |
-| whole takt plan | `IfcWorkSchedule` (+ `IfcRelAssignsToControl`) | *(out of scope — converter)* |
-| milestone (Inflytt, Dem. bygghiss) | `IfcTask` with `IsMilestone=TRUE` | `isMilestone true` |
+| `WagonType` | — *(DTC has no type layer)* | `IfcTaskType` |
+| `TaktTask` | ⊑ `dtc:WorkPackage` | `IfcTask` |
+| `TaktZone` | ⊑ `dtc:AsPlannedWorkingZone` | `IfcSpatialZone` |
+| `Crew` | ⊑ `dtc:AsPlannedWorkerCrew` | `IfcCrewResource` |
+| `TaktTime` | seeAlso `dtc:startTime`/`endTime` | `IfcTaskTime` |
+| `instantiates` | seeAlso `dtc:hasActivity` | `IfcRelDefinesByType` |
+| `performedIn` (WHERE) | ⊑ `dtc:isPerformedIn` | `IfcRelAssignsToProduct` (location) |
+| `actsOn` (WHAT) | ⊑ `dtc:hasTarget` | `IfcRelAssignsToProduct` (product) |
+| `performedBy` | seeAlso `dtc:hasResourceAssignment`/`requiresResource` | `IfcRelAssignsToProcess` |
+| `hasSuccessor` (the **train**) | seeAlso `dtc:requiresProcess` (reified) | `IfcRelSequence` |
+| `productionRate`/`crewSize`/`taktDuration`/`slot` | — *(takt-specific)* | — |
+| milestone | — | `IfcTask.IsMilestone` |
 
-Note IFC overloads `IfcRelAssignsToProduct` for **both** location and operand —
-which is why `performedIn` and `actsOn` both `closeMatch` it. The richer takt layer
-keeps the distinction sharp; it collapses to one relationship only on IFC export.
+Two notes. (1) IFC overloads `IfcRelAssignsToProduct` for **both** location and operand
+— which is why `performedIn` and `actsOn` both `closeMatch` it; the takt layer keeps
+the distinction sharp. (2) DTC **reifies** sequencing and resource assignment
+(precondition/assignment objects); takt uses direct edges for simplicity, so those map
+by `seeAlso`, not `subPropertyOf`. The whole takt plan (`IfcWorkSchedule`) is out of the
+minimal core — see [03-decisions.md](03-decisions.md) ADR-7.

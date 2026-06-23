@@ -30,9 +30,17 @@ source traces to a taktology choice, and every choice names its sources.
 **Reuse-vs-mint for the process layer.** INDEX gap #1: a takt-specific ontology does
 not exist, but two general construction-process ontologies do —
 `schlenger-2024-process-representation` (minimal schedule ontology, schedule↔IFC
-linking) and `dtc-ontology-spec` (DTC, imports BOT). Before freezing `takt:` process
-terms, decide whether to **subclass/map to** these rather than mint our own
-`TaktTask`/`hasSuccessor`/etc. *Pending — requires reading both ontologies in detail.*
+linking) and `dtc-ontology-spec` (DTC, imports BOT).
+
+> **RESOLVED 2026-06-23 → REUSE DTC.** `takt.ttl` v0.3.0 specializes DTC
+> (`TaktTask ⊑ dtc:WorkPackage`, `TaktZone ⊑ dtc:AsPlannedWorkingZone`,
+> `Crew ⊑ dtc:AsPlannedWorkerCrew`, `performedIn ⊑ dtc:isPerformedIn`,
+> `actsOn ⊑ dtc:hasTarget`) by *reference*, not `owl:imports`. DTC's published TTL was
+> read and found a near-exact fit. Schlenger 2024 builds **on** DTC, so this aligns to
+> it too — but Schlenger's own ontology terms were **not** extracted (its PDF was not
+> machine-readable with the tools available), so a finer Schlenger-specific mapping is
+> deferred. See [`docs/03-decisions.md`](../../docs/03-decisions.md) **ADR-7**.
+> *Still open:* confirm DTC **version** (a v2 exists) before pinning.
 
 ## Consequences / known evidence gaps
 

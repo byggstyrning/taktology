@@ -145,9 +145,11 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
 1. **No dedicated takt ontology exists in the literature.** The closest formal
    process vocabularies are the DTC ontology (`dtc-ontology-spec`) and Schlenger's
    minimal schedule ontology (`schlenger-2024-process-representation`) — neither is
-   takt-specific. *This is the gap taktology fills.* Before finalizing terms,
-   evaluate whether to **reuse/map to** DTC's process classes rather than mint our
-   own (decision pending — see `decisions/`).
+   takt-specific. *This is the gap taktology fills.* — **RESOLVED 2026-06-23:**
+   `takt.ttl` v0.3.0 reuses DTC by reference (see
+   [decisions/ADR-001](decisions/ADR-001-research-grounding.md) + `docs` ADR-7).
+   DTC's TTL was read and mapped; Schlenger's specific terms remain unextracted
+   (PDF not machine-readable here) → finer Schlenger mapping deferred.
 
 2. **Automated takt-zone identification directly from BIM/IFC *geometry* is thinly
    sourced.** `jabbari-2020-wolzo` optimizes over a work-density abstraction, not raw
@@ -182,5 +184,8 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
    evidenced *specifically for takt* yet.
 
 ### Closed / in-progress
-- *(none yet — corpus created 2026-06-23. Record closures here with a dated note
-  pointing at what closed them, per corpus-method.)*
+- **Gap #1 reuse-vs-mint — RESOLVED 2026-06-23** by reusing DTC in `takt.ttl` v0.3.0
+  (read DTC's TTL; mapped takt terms as subclasses/subproperties). Follow-ups:
+  confirm DTC version (v2 exists), extract Schlenger's ontology terms for a finer map.
+- Gaps #2 (geometry-driven zoning), #3 (wagon/train vocabulary), #4 (genealogy roots)
+  remain **open** — re-run discovery.
