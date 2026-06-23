@@ -20,6 +20,9 @@ catalog-v001.xml      # Protégé catalog
 research/pdfs/*
 !research/pdfs/.gitkeep
 
+# Local agent / editor config (never publish)
+.claude/
+
 # OS / editor
 .DS_Store
 Thumbs.db
