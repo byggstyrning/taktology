@@ -1,0 +1,46 @@
+#!/bin/sh
+# =============================================================================
+# pre-commit (taktology) — keep the README ontology diagram in sync.
+#
+# When a commit touches ontology/takt.ttl (or the generator / its bundled
+# fonts), this re-renders docs/diagrams/taktology-v*.png, repoints the README
+# image block at it, and re-stages both — so the committed tree is never out of
+# date and you never have to remember to run the generator by hand.
+#
+# Chaining note: this repo enables the hook via a *local* core.hooksPath
+# (= .githooks), which would otherwise shadow a globally-configured hook (e.g.
+# an Aikido secret scanner). To avoid silently disabling it, we run the global
+# pre-commit first and honour its exit code.
+#
+# Enable once per clone:  git config core.hooksPath .githooks
+# =============================================================================
+
+# --- 1. Run the global hook first (don't lose secret scanning, etc.) ---------
+global_hooks=$(git config --global core.hooksPath 2>/dev/null || true)
+this_dir=$(cd "$(dirname "$0")" && pwd)
+if [ -n "$global_hooks" ] && [ "$global_hooks" != "$this_dir" ] && [ -x "$global_hooks/pre-commit" ]; then
+    "$global_hooks/pre-commit" "$@" || exit $?
+fi
+
+# --- 2. Regenerate the diagrams when their inputs (or generators) changed ------
+if git diff --cached --name-only --diff-filter=ACM \
+    | grep -Eq '^(ontology/takt\.ttl|examples/takt-flowline-demo\.csv|scripts/generate_ontology_diagram\.py|scripts/generate_takt_scheme\.py|scripts/assets/fonts/)'; then
+
+    if   command -v python  >/dev/null 2>&1; then PY="python"
+    elif command -v py      >/dev/null 2>&1; then PY="py -3"
+    elif command -v python3 >/dev/null 2>&1; then PY="python3"
+    else
+        echo "pre-commit: python not found — skipping diagram regen (CI guard will catch staleness)." >&2
+        exit 0
+    fi
+
+    echo "pre-commit: inputs changed — regenerating README diagrams…"
+    if $PY scripts/generate_ontology_diagram.py && $PY scripts/generate_takt_scheme.py; then
+        git add docs/diagrams README.md
+    else
+        echo "pre-commit: diagram generation failed — is Pillow/rdflib installed? (pip install -r scripts/requirements.txt)" >&2
+        echo "pre-commit: letting the commit proceed; the CI guard will flag any staleness." >&2
+    fi
+fi
+
+exit 0

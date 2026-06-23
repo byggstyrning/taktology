@@ -217,9 +217,9 @@ def sc(v):
 
 
 COL = dict(
-    bg=(255, 255, 255),
-    title=(196, 193, 222),
-    subtitle=(120, 120, 150),
+    bg=(255, 255, 255),          # kept only for optional flat-background previews
+    title=(92, 80, 190),         # medium indigo — readable on white AND dark themes
+    subtitle=(118, 118, 132),    # mid neutral — balanced contrast on both themes
     takt_fill=(238, 236, 251),
     takt_edge=(124, 110, 222),
     takt_title=(40, 40, 74),
@@ -232,11 +232,11 @@ COL = dict(
     ext_sub=(36, 138, 98),
     arrow=(124, 110, 222),
     arrow_ext=(46, 158, 116),
-    edge_label=(138, 138, 160),
+    edge_label=(118, 118, 132),
     payoff_fill=(240, 238, 252),
     payoff_edge=(214, 210, 244),
     payoff_text=(78, 64, 168),
-    footer=(150, 150, 172),
+    footer=(118, 118, 132),
     shadow=(40, 38, 90),
 )
 
@@ -332,16 +332,15 @@ def dashed_polyline(d, pts, color, width, dash=12, gap=8):
 
 
 def text_center(d, xy, text, font, color, halo=False):
-    if halo:
-        bb = d.textbbox((sc(xy[0]), sc(xy[1])), text, font=font, anchor="mm")
-        pad = int(sc(5))
-        d.rounded_rectangle([bb[0] - pad, bb[1] - int(sc(1)), bb[2] + pad, bb[3] + int(sc(1))],
-                            radius=int(sc(6)), fill=COL["bg"])
-    d.text((sc(xy[0]), sc(xy[1])), text, font=font, fill=color, anchor="mm")
+    # halo = a soft light outline so a small label that crosses an arrow stays
+    # legible on the transparent canvas under either GitHub theme.
+    kw = dict(stroke_width=int(sc(2.5)), stroke_fill=(255, 255, 255, 150)) if halo else {}
+    d.text((sc(xy[0]), sc(xy[1])), text, font=font, fill=color, anchor="mm", **kw)
 
 
 def render(version, classes, objprops, dataprops) -> Image.Image:
-    img = Image.new("RGB", (int(sc(W)), int(sc(H))), COL["bg"])
+    # Transparent canvas so the PNG reads on any GitHub background (light OR dark).
+    img = Image.new("RGBA", (int(sc(W)), int(sc(H))), (0, 0, 0, 0))
 
     # soft drop shadows under every box
     shadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
@@ -351,7 +350,7 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
         sd.rounded_rectangle([sc(x0), sc(y0 + 5), sc(x1), sc(y1 + 8)],
                              radius=sc(20), fill=COL["shadow"] + (55,))
     shadow = shadow.filter(ImageFilter.GaussianBlur(sc(7)))
-    img = Image.alpha_composite(img.convert("RGBA"), shadow).convert("RGB")
+    img = Image.alpha_composite(img, shadow)
     d = ImageDraw.Draw(img)
 
     f_title = fnt(True, 30)
@@ -445,7 +444,7 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
     r = 9
     items_w = 0  # draw centered: compute total width first
     segs = [("dot", COL["takt_edge"], COL["takt_fill"], "takt: class"),
-            ("ring", COL["ext_edge"], COL["bg"], "external (DTC / IFC / top:)"),
+            ("ring", COL["ext_edge"], None, "external (DTC / IFC / top:)"),
             ("txt", None, None, "⊑ subClassOf   ·   ≈ closeMatch")]
     gap = 34
     widths = []

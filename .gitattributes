@@ -1,0 +1,5 @@
+# Git hooks and shell scripts must keep LF endings so they run on every
+# platform (a CR in the shebang breaks the interpreter on Linux/macOS and in
+# Git Bash). This overrides the global core.autocrlf=true for these files.
+.githooks/** text eol=lf
+*.sh        text eol=lf

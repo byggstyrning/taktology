@@ -1,20 +1,25 @@
 name: ontology-diagram
 
-# Keep the README graph in sync with the ontology. If a change to takt.ttl (or
-# the generator) would alter the rendered PNG or the README image block, this
-# fails — regenerate locally with `python scripts/generate_ontology_diagram.py`
-# and commit the result.
+# Keep the README pictures in sync with the repo. If a change to takt.ttl, the
+# demo flowline, or either generator would alter a rendered PNG or its README
+# image block, this fails — regenerate locally and commit the result:
+#   python scripts/generate_ontology_diagram.py
+#   python scripts/generate_takt_scheme.py
 on:
   push:
     paths:
       - "ontology/takt.ttl"
+      - "examples/takt-flowline-demo.csv"
       - "scripts/generate_ontology_diagram.py"
+      - "scripts/generate_takt_scheme.py"
       - "scripts/assets/fonts/**"
       - ".github/workflows/diagram.yml"
   pull_request:
     paths:
       - "ontology/takt.ttl"
+      - "examples/takt-flowline-demo.csv"
       - "scripts/generate_ontology_diagram.py"
+      - "scripts/generate_takt_scheme.py"
       - "scripts/assets/fonts/**"
 
 jobs:
@@ -27,13 +32,15 @@ jobs:
           python-version: "3.x"
       - run: pip install -r scripts/requirements.txt
       - run: python scripts/generate_ontology_diagram.py
-      - name: Fail if the committed diagram / README is stale
+      - run: python scripts/generate_takt_scheme.py
+      - name: Fail if a committed diagram / README is stale
         run: |
           if ! git diff --quiet -- docs/diagrams README.md; then
-            echo "::error::Ontology diagram is out of date. Run:"
+            echo "::error::A README diagram is out of date. Run:"
             echo "::error::  python scripts/generate_ontology_diagram.py"
+            echo "::error::  python scripts/generate_takt_scheme.py"
             echo "::error::and commit docs/diagrams/ + README.md."
             git --no-pager diff --stat -- docs/diagrams README.md
             exit 1
           fi
-          echo "Diagram is in sync."
+          echo "Diagrams are in sync."
