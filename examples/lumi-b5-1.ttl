@@ -1,0 +1,101 @@
+# =============================================================================
+# Worked A-Box — wagon 5.2 ("Enkling gipsväggar") in takt zone B5:1
+# Source: LUMI production plan (Produktionstidplan), row 13.
+#
+# A complete vertical slice that exercises every term in takt.ttl:
+#   wagon type -> one occurrence in a real zone -> the zone with its element and
+#   quantity -> the crew -> the takt time -> a sequence (train) edge to a neighbour.
+#
+# Validate with:  riot --validate ../ontology/takt.ttl lumi-b5-1.ttl   (Apache Jena)
+#            or:  load both files in Protégé and run a reasoner.
+#
+# NOTE: values marked (illustrative) are placeholders so the worked calculation
+# reads end-to-end. Swap in real TopologicPy geometry and the real plan week.
+# =============================================================================
+
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
+@prefix ex:   <https://w3id.org/taktology/examples/lumi#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# -----------------------------------------------------------------------------
+# WAGON TYPE — the reusable template (activity-structure row, BIMTakt Bild 5)
+# -----------------------------------------------------------------------------
+ex:wagon_5_2 a takt:WagonType ;
+    rdfs:label "Enkling gipsväggar"@sv ;
+    takt:productionRate 0.58 ;          # h/m²  (auto-suggested from reference DB)
+    takt:crewSize       5 ;
+    takt:quantityUnit   "AREA" ;
+    prov:wasDerivedFrom ex:reference_database .   # provenance of the rate/crew values
+
+ex:reference_database a prov:Entity ;
+    rdfs:label "BIMTakt reference project database"@en .
+
+# -----------------------------------------------------------------------------
+# CREW — the Dexx code on the row
+# -----------------------------------------------------------------------------
+ex:crew_DE14 a takt:Crew ;
+    takt:crewCode "DE14" .
+
+# -----------------------------------------------------------------------------
+# TAKT ZONE — also a top:FunctionalZone, top:Cell and bot:Zone (inherited)
+# -----------------------------------------------------------------------------
+ex:zone_B5_1 a takt:TaktZone ;
+    rdfs:label "B5:1" ;
+    takt:plan  "PLAN 5" ;
+    top:area   184.0 ;                  # m²  (illustrative — from TopologicPy Cell geometry)
+    top:containsElement ex:gipsvagg_B5_1 ,   # the drywall this task acts on
+                        ex:slab_B5_1 .       # a slab another trade (screed) acts on
+
+# Two elements in the SAME zone, owned by DIFFERENT trades — this is exactly why
+# the duration must read from takt:actsOn (operand) and not the zone total.
+ex:gipsvagg_B5_1 a top:Element ;
+    rdfs:label "Gypsum wall set, B5:1"@en ;
+    top:area 184.0 .                    # m²  (the operand quantity for wagon 5.2)
+
+ex:slab_B5_1 a top:Element ;
+    rdfs:label "Floor slab, B5:1"@en ;
+    top:area 95.0 .                     # belongs to the screed wagon, NOT 5.2
+
+# -----------------------------------------------------------------------------
+# TAKT TASK — the occurrence (one coloured cell)
+# -----------------------------------------------------------------------------
+ex:task_5_2_B5_1 a takt:TaktTask ;
+    rdfs:label "5.2 @ B5:1" ;
+    takt:instantiates ex:wagon_5_2 ;        # -> template
+    takt:performedIn  ex:zone_B5_1 ;        # WHERE (location / work area)
+    takt:actsOn       ex:gipsvagg_B5_1 ;    # WHAT  (operand — drives the quantity)
+    takt:performedBy  ex:crew_DE14 ;
+    takt:hasTaktTime  ex:time_5_2_B5_1 ;
+    takt:hasSuccessor ex:task_5_3_B5_1 ;    # the train edge
+    takt:isMilestone  false .
+
+# -----------------------------------------------------------------------------
+# TAKT TIME — duration COMPUTED from operand quantity x rate / crew
+#   qty   = 184 m²            (ex:gipsvagg_B5_1 top:area, via takt:actsOn)
+#   hours = 184 * 0.58  = 106.72 person-hours
+#   days  = 106.72 / (5 * 8) = ~2.67 crew-days  ->  fits inside the fixed 1-week takt
+#   => duration = P1W
+# -----------------------------------------------------------------------------
+ex:time_5_2_B5_1 a takt:TaktTime ;
+    takt:slot     4 ;                   # takt week (illustrative — confirm vs sheet)
+    takt:duration "P1W"^^xsd:duration ;
+    takt:start    "2024-01-22"^^xsd:date ;   # (illustrative)
+    takt:finish   "2024-01-26"^^xsd:date .   # (illustrative)
+
+# -----------------------------------------------------------------------------
+# TRAIN — the ordered convoy through zone B5:1 (Reading A), a top:Path
+# -----------------------------------------------------------------------------
+ex:train_B5_1 a takt:Train ;
+    rdfs:label "Train through B5:1"@en ;
+    takt:hasMember ex:task_5_2_B5_1 , ex:task_5_3_B5_1 .
+
+# -----------------------------------------------------------------------------
+# Successor stub — just enough for the hasSuccessor edge to resolve. Fully
+# modelling every wagon in the zone is the generation loop's job, not a fixture's.
+# -----------------------------------------------------------------------------
+ex:task_5_3_B5_1 a takt:TaktTask ;
+    rdfs:label "5.3 @ B5:1" ;
+    takt:performedIn ex:zone_B5_1 .

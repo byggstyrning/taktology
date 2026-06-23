@@ -1,0 +1,279 @@
+# =============================================================================
+# Taktology — a minimal interchange vocabulary for takt / Lean production planning
+# =============================================================================
+#
+# Purpose
+#   A small, modular ontology for the PROCESS half of takt planning (wagons,
+#   trains, takt tasks, crews, takt time) that sits on top of the TopologicPy
+#   ontology (top:) for the SPATIAL half (zones, elements, geometry, graph) and
+#   is aligned to IFC process concepts by annotation only.
+#
+# Design principles
+#   1. Author only what top: / bot: / IFC do not already cover. The spatial,
+#      topological and graph machinery comes from top:; this file adds tasks,
+#      sequence, resources and takt time.
+#   2. Align to IFC by skos:closeMatch, NOT owl:imports of ifcOWL. ifcOWL is a
+#      ~14k-axiom monolith; importing it would defeat the modularity goal. The
+#      ifc: prefix is used only as a resolvable target for closeMatch.
+#   3. closeMatch is an INTERCHANGE bridge, not a reasoning bridge. It does not
+#      license a reasoner to treat a takt:TaktTask and an ifc:IfcTask as
+#      identical, nor to transfer properties across the mapping. Round-tripping
+#      to an .ifc file is the job of a converter, not of these axioms.
+#
+# Status: v0.2.0 — adds takt:actsOn (direct task->element operand link).
+# License: see LICENSE at repo root.
+# =============================================================================
+
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ifc:  <https://standards.buildingsmart.org/IFC/DEV/IFC4/ADD2_TC1/OWL#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# -----------------------------------------------------------------------------
+# Ontology header
+# -----------------------------------------------------------------------------
+<https://w3id.org/taktology> a owl:Ontology ;
+    dcterms:title "Taktology — takt production planning vocabulary"@en ;
+    owl:versionInfo "0.2.0" ;
+    rdfs:comment """A minimal interchange vocabulary for takt / Lean construction
+        production planning. Provides the process layer (takt tasks, wagons,
+        trains, crews, takt time) on top of the TopologicPy ontology (top:),
+        aligned to IFC process concepts via skos:closeMatch."""@en ;
+    rdfs:seeAlso <https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl> ;
+    rdfs:seeAlso <https://w3id.org/bot#> .
+
+# =============================================================================
+# CLASSES
+# =============================================================================
+
+# --- The takt zone: a programme-grouped spatial region the work flows through.
+#     A single subclass of top:FunctionalZone is all that is needed — it inherits
+#     Cell + bot:Zone + the IFC zone alignment + containsElement + area/volume.
+takt:TaktZone a owl:Class ;
+    rdfs:subClassOf top:FunctionalZone ;
+    rdfs:label "Takt zone"@en ;
+    rdfs:comment """A spatial work area through which takt wagons flow at a fixed
+        rhythm. Often a half-floor, fire compartment or room cluster that does not
+        align with a single storey or space — which is exactly why it subclasses
+        top:FunctionalZone (a zone grouped by function/programme) rather than a
+        structural zone."""@en ;
+    skos:closeMatch ifc:IfcSpatialZone .
+
+# --- The wagon as a reusable template (the activity-structure row): a trade's
+#     work package, independent of which zone it lands in.
+takt:WagonType a owl:Class ;
+    rdfs:label "Wagon type"@en ;
+    rdfs:comment """The reusable definition of a single trade's work package — e.g.
+        'Enkling gipsväggar', ~5 workers, 0.58 h/m². This is the TYPE level; its
+        per-zone occurrences are takt:TaktTask instances linked by
+        takt:instantiates."""@en ;
+    skos:closeMatch ifc:IfcTaskType .
+
+# --- The takt task: one occurrence = one wagon in one zone (one cell of the grid).
+takt:TaktTask a owl:Class ;
+    rdfs:label "Takt task"@en ;
+    rdfs:comment """A concrete occurrence of a wagon performed in one takt zone for
+        one takt (one coloured cell of the production plan). Carries its own takt
+        time and acts on a specific subset of the zone's elements."""@en ;
+    skos:closeMatch ifc:IfcTask .
+
+# --- The crew / gang performing the work (the Dexx codes in the LUMI sheet).
+takt:Crew a owl:Class ;
+    rdfs:label "Crew"@en ;
+    rdfs:comment "A labour resource (gang) that performs takt tasks."@en ;
+    skos:closeMatch ifc:IfcCrewResource .
+
+# --- The timing payload of a task.
+takt:TaktTime a owl:Class ;
+    rdfs:label "Takt time"@en ;
+    rdfs:comment """The schedule payload of a takt task: takt slot, planned
+        duration (typically the fixed takt, e.g. P1W), start and finish."""@en ;
+    skos:closeMatch ifc:IfcTaskTime .
+
+# --- The train: the ordered convoy of wagons. NOT a single IFC entity — it is a
+#     PATH through the task graph, so it subclasses top:Path. (Reading A; see notes.)
+takt:Train a owl:Class ;
+    rdfs:subClassOf top:Path ;
+    rdfs:label "Train"@en ;
+    rdfs:comment """An ordered sequence of takt tasks — the convoy of trades that
+        marches through a zone back-to-back (Reading A). Modelled as a top:Path
+        because a train is an ordered traversal of the task graph, not a first-class
+        entity. The ordering is carried by the takt:hasSuccessor chain."""@en .
+
+# =============================================================================
+# OBJECT PROPERTIES  (the glue top:/IFC do not give you)
+# =============================================================================
+
+# --- occurrence -> template
+takt:instantiates a owl:ObjectProperty ;
+    rdfs:label "instantiates"@en ;
+    rdfs:comment "Links a takt task occurrence to the wagon type it realises."@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  takt:WagonType ;
+    skos:closeMatch ifc:IfcRelDefinesByType .
+
+# --- task -> WHERE it happens (location sense of IfcRelAssignsToProduct)
+takt:performedIn a owl:ObjectProperty ;
+    rdfs:label "performed in"@en ;
+    rdfs:comment """The takt zone a task is located in. This is the LOCATION sense
+        of IfcRelAssignsToProduct (RelatingProduct = a spatial element). It is the
+        work AREA, which generally contains elements for several trades — not only
+        the ones this task acts on. For the operand, use takt:actsOn."""@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  top:FunctionalZone ;
+    skos:closeMatch ifc:IfcRelAssignsToProduct .
+
+# --- task -> WHAT it acts on  (operand sense of IfcRelAssignsToProduct)   [v0.2.0]
+takt:actsOn a owl:ObjectProperty ;
+    rdfs:label "acts on"@en ;
+    rdfs:comment """The building element(s) this task constructs, installs, or
+        operates on — the OPERAND of the work, distinct from the zone it is located
+        in (takt:performedIn). This is the link 4D-BIM practice draws directly from
+        IfcTask to IfcBuiltElement via IfcRelAssignsToProduct. It is a SUBSET of the
+        zone's containsElement inventory, and it — not the zone total — is what the
+        quantity-to-duration formula should sum over. Note this property is
+        deliberately broader than IFC's 'resulting product' framing: it covers both
+        elements PRODUCED by the task (e.g. a wall built by drywall) and pre-existing
+        elements OPERATED ON by the task (e.g. a wall painted)."""@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  top:Element ;
+    skos:closeMatch ifc:IfcRelAssignsToProduct .
+
+# --- task -> crew
+takt:performedBy a owl:ObjectProperty ;
+    rdfs:label "performed by"@en ;
+    rdfs:comment "The crew that performs the takt task."@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  takt:Crew ;
+    skos:closeMatch ifc:IfcRelAssignsToProcess .
+
+# --- sequence (this chain IS the train)
+takt:hasSuccessor a owl:ObjectProperty ;
+    rdfs:label "has successor"@en ;
+    rdfs:comment """The next takt task in execution order. The chain of these edges
+        is the train. Maps to IfcRelSequence, which additionally carries SequenceType
+        and lag — richer than this simple pointer; add those as edge data if needed."""@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  takt:TaktTask ;
+    skos:closeMatch ifc:IfcRelSequence .
+
+takt:hasPredecessor a owl:ObjectProperty ;
+    rdfs:label "has predecessor"@en ;
+    rdfs:comment "Inverse of takt:hasSuccessor."@en ;
+    owl:inverseOf takt:hasSuccessor ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  takt:TaktTask .
+
+# --- task -> its timing payload
+takt:hasTaktTime a owl:ObjectProperty ;
+    rdfs:label "has takt time"@en ;
+    rdfs:comment "Links a takt task to its TaktTime schedule payload."@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  takt:TaktTime .
+
+# --- train -> member tasks
+takt:hasMember a owl:ObjectProperty ;
+    rdfs:label "has member"@en ;
+    rdfs:comment "Associates a train with the takt tasks that compose it."@en ;
+    rdfs:domain takt:Train ;
+    rdfs:range  takt:TaktTask .
+
+# =============================================================================
+# DATATYPE PROPERTIES  (the takt-specific values with no home in top:)
+# =============================================================================
+
+takt:productionRate a owl:DatatypeProperty ;
+    rdfs:label "production rate"@en ;
+    rdfs:comment "Effort value in person-hours per unit, e.g. h/m² (BIMTakt)."@en ;
+    rdfs:domain takt:WagonType ;
+    rdfs:range  xsd:decimal .
+
+takt:crewSize a owl:DatatypeProperty ;
+    rdfs:label "crew size"@en ;
+    rdfs:comment "Number of workers per column (MA/Kol)."@en ;
+    rdfs:domain takt:WagonType ;
+    rdfs:range  xsd:integer .
+
+takt:quantityUnit a owl:DatatypeProperty ;
+    rdfs:label "quantity unit"@en ;
+    rdfs:comment "What the wagon's quantity is measured in: AREA | VOLUME | COUNT. Selects which geometric quantity the duration formula reads."@en ;
+    rdfs:domain takt:WagonType ;
+    rdfs:range  xsd:string .
+
+takt:crewCode a owl:DatatypeProperty ;
+    rdfs:label "crew code"@en ;
+    rdfs:comment "Discipline/gang code, e.g. 'DE14'."@en ;
+    rdfs:domain takt:Crew ;
+    rdfs:range  xsd:string .
+
+takt:slot a owl:DatatypeProperty ;
+    rdfs:label "takt slot"@en ;
+    rdfs:comment "The takt slot the task is scheduled in (e.g. week number)."@en ;
+    rdfs:domain takt:TaktTime ;
+    rdfs:range  xsd:integer .
+
+takt:duration a owl:DatatypeProperty ;
+    rdfs:label "duration"@en ;
+    rdfs:comment "ISO 8601 duration, e.g. 'P1W' for a one-week takt."@en ;
+    rdfs:domain takt:TaktTime ;
+    rdfs:range  xsd:duration .
+
+takt:start a owl:DatatypeProperty ;
+    rdfs:label "start"@en ;
+    rdfs:domain takt:TaktTime ;
+    rdfs:range  xsd:date .
+
+takt:finish a owl:DatatypeProperty ;
+    rdfs:label "finish"@en ;
+    rdfs:domain takt:TaktTime ;
+    rdfs:range  xsd:date .
+
+takt:isMilestone a owl:DatatypeProperty ;
+    rdfs:label "is milestone"@en ;
+    rdfs:comment "TRUE for milestone tasks (e.g. 'Inflytt HG01', 'Dem. bygghiss')."@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  xsd:boolean .
+
+takt:plan a owl:DatatypeProperty ;
+    rdfs:label "plan"@en ;
+    rdfs:comment "Storey grouping label for a takt zone, e.g. 'PLAN 5'."@en ;
+    rdfs:domain takt:TaktZone ;
+    rdfs:range  xsd:string .
+
+# =============================================================================
+# NOTES FOR IMPLEMENTERS
+# =============================================================================
+# 1. NAMESPACE. https://w3id.org/taktology# is the intended permanent namespace
+#    but the w3id.org redirect must be registered before publishing. Until then
+#    treat it as a placeholder; do not assume it resolves.
+#
+# 2. top: NAMESPACE. Verify the exact TopologicPy ontology namespace URI against
+#    the published file (https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl)
+#    before relying on top:FunctionalZone / top:Element / top:Path / top:area /
+#    top:volume / top:containsElement. The URI used here is the expected form.
+#
+# 3. DURATION IS COMPUTED, NOT ASSERTED. duration on TaktTime is normally derived:
+#       qty   = sum( e.area  for e in task.actsOn )   # or e.volume, per quantityUnit
+#       hours = qty * wagonType.productionRate
+#       days  = hours / (wagonType.crewSize * HOURS_PER_DAY)
+#    Read the quantity from takt:actsOn (the operand subset), NOT from the zone
+#    total via performedIn -> containsElement — otherwise every trade in the zone
+#    inherits the same quantity, which is wrong.
+#
+# 4. TRAIN READING A vs B. takt:Train + the hasSuccessor chain encode Reading A
+#    (cross-trade convoy through one zone). For Reading B (one wagon's run across
+#    zones), put hasSuccessor edges between same-wagon occurrences in adjacent
+#    zones instead. Pin this down with the team before generating instances.
+#
+# 5. closeMatch, NOT equivalentClass. Do not strengthen any skos:closeMatch to
+#    owl:equivalentClass without verifying the IFC entity and the takt term are
+#    genuinely identical in cardinality and semantics. performedIn and actsOn both
+#    closeMatch IfcRelAssignsToProduct on purpose — mirroring IFC's own overloading
+#    of that relationship for location vs operand.
+# =============================================================================

@@ -1,0 +1,168 @@
+# =============================================================================
+# Takt topology schema — node + edge definitions for a property-graph (LPG) build
+# =============================================================================
+# This is the SPEC a topological / graph-construction script drives from. It maps
+# 1:1 onto the takt.ttl T-Box and the lumi-b5-1.ttl A-Box. Adapt the syntax to the
+# target: Neo4j/Cypher, NetworkX, rdflib (Turtle), or an IfcOpenShell writer.
+#
+# IfcRel* relationships become typed, directed, property-bearing EDGES — the
+# natural fit, because in IFC/STEP these relationships are reified (objectified
+# entities with attributes), and LPG edges can carry properties.
+# =============================================================================
+
+node_types:
+
+  WagonType:                      # reusable trade package (template)
+    ifc_class: IfcTaskType
+    lean_term: "wagon (definition)"
+    takt_term: takt:WagonType
+    properties:
+      id: str                     # e.g. "5.2"
+      name: str                   # "Enkling gipsväggar"
+      crew_code: str              # "DE14"  (FK -> Crew.code)
+      production_rate: float      # h/m²
+      crew_size: int              # MA/Kol
+      quantity_unit: enum         # AREA | VOLUME | COUNT
+
+  Task:                           # one occurrence: wagon x zone (x takt)
+    ifc_class: IfcTask
+    lean_term: "wagon (occurrence) / takt cell"
+    takt_term: takt:TaktTask
+    properties:
+      id: str                     # "5.2@B5:1"
+      slot: int                   # scheduled takt slot (week)
+      is_milestone: bool
+      task_time: ref(TaskTime)
+
+  TaktZone:                       # location the work flows through
+    ifc_class: IfcSpatialZone     # == takt:TaktZone rdfs:subClassOf top:FunctionalZone
+    lean_term: "takt zone / station"
+    takt_term: takt:TaktZone
+    properties:
+      id: str                     # "B5:1"
+      plan: str                   # "PLAN 5"
+      area: float                 # top:area  (computed)
+      volume: float               # top:volume (computed)
+
+  Crew:
+    ifc_class: IfcCrewResource
+    lean_term: "crew"
+    takt_term: takt:Crew
+    properties:
+      code: str                   # "DE14"
+
+  Element:                        # building part — quantity source
+    ifc_class: IfcBuiltElement
+    takt_term: top:Element
+    properties:
+      id: str
+      area: float                 # top:area
+      volume: float               # top:volume
+      trade: str                  # which wagon owns it (classification step)
+
+  TaskTime:
+    ifc_class: IfcTaskTime | IfcTaskTimeRecurring
+    takt_term: takt:TaktTime
+    properties:
+      slot: int
+      duration: str               # ISO 8601, e.g. "P1W"
+      start: date
+      finish: date
+
+edge_types:                       # source -> target
+
+  INSTANTIATES:                   # occurrence -> wagon template
+    ifc_rel: IfcRelDefinesByType
+    takt_prop: takt:instantiates
+    from: Task
+    to: WagonType
+    cardinality: "N:1"
+
+  ASSIGNS_TO_PRODUCT__LOCATION:   # task -> zone it is performed in (WHERE)
+    ifc_rel: IfcRelAssignsToProduct
+    takt_prop: takt:performedIn
+    from: Task
+    to: TaktZone
+    cardinality: "N:1"
+
+  ASSIGNS_TO_PRODUCT__OPERAND:    # task -> element it acts on (WHAT)   [v0.2.0]
+    ifc_rel: IfcRelAssignsToProduct
+    takt_prop: takt:actsOn
+    from: Task
+    to: Element
+    cardinality: "N:M"
+    note: >
+      The operand link. A SUBSET of the zone's contained elements — the slice this
+      task's quantity and duration actually depend on. Drives the duration formula.
+
+  ASSIGNS_TO_PROCESS:             # crew -> task it performs
+    ifc_rel: IfcRelAssignsToProcess
+    takt_prop: takt:performedBy   # (modelled task->crew in takt:; IFC fans crew->task)
+    from: Crew
+    to: Task
+    cardinality: "1:N"
+    edge_props: { role: "labor" }
+
+  SEQUENCE:                       # predecessor -> successor  *** this chain IS the train ***
+    ifc_rel: IfcRelSequence
+    takt_prop: takt:hasSuccessor
+    from: Task
+    to: Task
+    cardinality: "1:1"
+    edge_props: { sequence_type: "FINISH_START", lag: "P0D" }
+
+  CONTAINS_ELEMENT:               # zone -> building elements (work-area inventory)
+    ifc_rel: IfcRelContainedInSpatialStructure  # (inverse direction; normalise zone->element)
+    takt_prop: top:containsElement
+    from: TaktZone
+    to: Element
+    cardinality: "1:N"
+    note: "Spatial context (everything in the work area). NOT the quantity source for one task."
+
+  HAS_TASK_TIME:                  # task -> its timing payload
+    takt_prop: takt:hasTaktTime
+    from: Task
+    to: TaskTime
+    cardinality: "N:1"
+
+# =============================================================================
+# GENERATION RULE — builds the occurrence graph from templates
+# (this loop IS "fully automated takt plan generation")
+# =============================================================================
+generation: |
+  for wagon in WagonTypes:
+      for zone in TaktZones where applies(wagon, zone):     # applicability filter
+          t = Task(id = f"{wagon.id}@{zone.id}")
+          add_edge(t, wagon, INSTANTIATES)
+          add_edge(t, zone,  ASSIGNS_TO_PRODUCT__LOCATION)
+          add_edge(Crew[wagon.crew_code], t, ASSIGNS_TO_PROCESS)
+
+          # operand: the elements in this zone owned by this wagon's trade
+          operands = [e for e in out(zone, CONTAINS_ELEMENT) if e.trade == wagon.id]
+          for e in operands:
+              add_edge(t, e, ASSIGNS_TO_PRODUCT__OPERAND)        # takt:actsOn
+
+          # quantity -> duration  (read from operands, NOT the zone total)
+          qty   = sum(e.area if wagon.quantity_unit == "AREA" else e.volume
+                      for e in operands)
+          hours = qty * wagon.production_rate
+          days  = hours / (wagon.crew_size * HOURS_PER_DAY)
+          t.task_time = TaskTime(duration = TAKT_LENGTH)         # fits-in-takt check on `days`
+
+  # wire the train: order wagons, link consecutive occurrences per zone (Reading A)
+  for zone in TaktZones:
+      chain = sort(tasks_in(zone), key = wagon_order)
+      for a, b in pairwise(chain):
+          add_edge(a, b, SEQUENCE, sequence_type="FINISH_START")
+
+# =============================================================================
+# Notes
+#   - applies(wagon, zone): project-specific predicate. Make it pluggable (a column
+#     in the wagon table or a callback), not hardcoded. The LUMI sheet shows TAKPLAN,
+#     PAVILJONG and PLAN-2/4/5 carrying different wagon sets.
+#   - e.trade classification (which wagon owns which element) is new, project-specific
+#     work — key it on IfcType + material or a Pset. Without it, actsOn cannot be
+#     populated and you fall back to the zone total (flag that as a stub).
+#   - Reading A vs B of "train": this rule encodes A. For B, sequence same-wagon
+#     occurrences across adjacent zones instead.
+# =============================================================================

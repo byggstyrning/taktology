@@ -1,0 +1,24 @@
+# Python (for the ingester / generation scripts)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# RDF / build tooling
+*.tmp
+.riot/
+catalog-v001.xml      # Protégé catalog
+*.owl.bak
+
+# IFC working files (large; keep out of git unless a fixture)
+*.ifc
+!**/fixtures/*.ifc
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
