@@ -2,7 +2,9 @@
 # Taktology — a minimal, research-grounded vocabulary for takt production planning
 # =============================================================================
 #
-# v0.3.0 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
+# v0.3.1 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
+#          The takt zone also subclasses top:FunctionalZone (hence bot:Zone) for topology
+#          — adjacency, element containment, and TopologicPy-computed geometry.
 #
 # What this is
 #   The canonical takt skeleton: 5 classes, 6 object properties, 6 datatype
@@ -14,7 +16,7 @@
 #   dtc:  Digital Twin Construction ontology  -> rdfs:subClassOf / subPropertyOf
 #         (the process, working-zone and resource backbone; DTC itself imports BOT)
 #   ifc:  IFC 4.3 process schema              -> skos:closeMatch (interchange anchor)
-#   top:  TopologicPy                          -> rdfs:seeAlso (geometry/quantity engine)
+#   top:  TopologicPy   -> rdfs:subClassOf for TaktZone (FunctionalZone ⊑ bot:Zone) + geometry
 #   Every term carries dcterms:source -> the research corpus that grounds it.
 #
 # Why DTC reuse (resolves research/decisions/ADR-001's open reuse-vs-mint question)
@@ -55,7 +57,7 @@
 <https://w3id.org/taktology> a owl:Ontology ;
     dcterms:title "Taktology — takt production planning vocabulary (minimal core)"@en ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.3.0" ;
+    owl:versionInfo "0.3.1" ;
     rdfs:comment """Minimal core takt-planning vocabulary. Specializes the Digital
         Twin Construction (DTC) ontology for takt and adds the takt-specific
         type-layer, rhythm and work-density values. Aligned to IFC 4.3 by
@@ -70,17 +72,22 @@
 # =============================================================================
 
 takt:TaktZone a owl:Class ;
-    rdfs:subClassOf dtc:AsPlannedWorkingZone ;
+    rdfs:subClassOf top:FunctionalZone ,          # SPATIAL: a TopologicPy functional zone, hence a bot:Zone — 3D extent, adjacency (bot:adjacentZone), containment (bot:containsElement), computed geometry
+                    dtc:AsPlannedWorkingZone ;     # PROCESS: a planned LBS working zone
     rdfs:label "Takt zone"@en ;
     rdfs:comment """A spatial work area through which takt wagons flow at a fixed
         rhythm — often a half-floor, fire compartment or room cluster (macro/normal/
-        micro per the three-level method). A specialization of DTC's planned working
-        zone; DTC zones reach BOT and can carry geometry, and TopologicPy computes
-        the zone's area/volume (top:area / top:volume)."""@en ;
+        micro per the three-level method). v0.3.1 makes it BOTH a top:FunctionalZone
+        (which is a bot:Zone — so it has 3D extent, adjacency via bot:adjacentZone, and
+        element containment via bot:containsElement, with TopologicPy computing the
+        geometry) AND a DTC planned working zone (the LBS / process semantics). DTC's
+        own WorkingZone is NOT a bot:Zone — it only isLocatedIn one — so subclassing
+        top:FunctionalZone is what places takt zones in the BOT topology graph and
+        unlocks adjacency/flow reasoning."""@en ;
     skos:closeMatch ifc:IfcSpatialZone ;
-    rdfs:seeAlso top:FunctionalZone ;
-    dcterms:source <https://iglc.net/Papers/Details/1350> ,   # dlouhy-2016-three-level
-                   <https://iglc.net/Papers/Details/902> .    # frandson-2013-cladding
+    dcterms:source <https://iglc.net/Papers/Details/1350> ,        # dlouhy-2016-three-level
+                   <https://iglc.net/Papers/Details/902> ,         # frandson-2013-cladding
+                   <https://doi.org/10.3233/SW-200385> .           # rasmussen-2020-bot (extend bot:Zone)
 
 takt:WagonType a owl:Class ;
     rdfs:label "Wagon type"@en ;

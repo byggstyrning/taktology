@@ -1,13 +1,12 @@
 # =============================================================================
 # Worked A-Box — wagon 5.2 ("Enkling gipsväggar") in takt zone B5:1
 # Source: LUMI production plan (Produktionstidplan), row 13.
-# Conforms to ontology/takt.ttl v0.3.0 (minimal core, DTC-aligned).
+# Conforms to ontology/takt.ttl v0.3.1 (minimal core; TaktZone ⊑ top:FunctionalZone
+# [⊑ bot:Zone] + dtc:AsPlannedWorkingZone).
 #
-# Exercises every term in the core:
-#   wagon type -> one occurrence in a real zone -> the zone with its element and
-#   quantity -> the crew -> the takt time -> a hasSuccessor (train) edge.
-# Calendar dates reuse DTC (dtc:startTime / dtc:endTime) per the v0.3.0 design;
-# zone quantities come from TopologicPy (top:area / top:containsElement).
+# Exercises every term in the core, plus the BOT topology a takt zone now carries:
+#   bot:containsElement (quantities), bot:adjacentZone (flow), dtc:isLocatedIn (building).
+# Calendar dates reuse DTC (dtc:startTime / dtc:endTime); zone area from TopologicPy.
 #
 # Validate:  riot --validate ../ontology/takt.ttl lumi-b5-1.ttl   (Apache Jena)
 # Values marked (illustrative) are placeholders so the calculation reads end-to-end.
@@ -16,6 +15,7 @@
 @prefix takt: <https://w3id.org/taktology#> .
 @prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology#> .
 @prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
+@prefix bot:  <https://w3id.org/bot#> .
 @prefix ex:   <https://w3id.org/taktology/examples/lumi#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
@@ -41,23 +41,32 @@ ex:crew_DE14 a takt:Crew ;
     rdfs:label "DE14" .
 
 # -----------------------------------------------------------------------------
-# TAKT ZONE — a takt:TaktZone (hence a dtc:AsPlannedWorkingZone; aligns to BOT)
+# TAKT ZONE — a takt:TaktZone, hence a top:FunctionalZone AND a bot:Zone AND a
+# dtc:AsPlannedWorkingZone. Topology links use BOT; geometry comes from TopologicPy.
 # -----------------------------------------------------------------------------
 ex:zone_B5_1 a takt:TaktZone ;
     rdfs:label "B5:1 (PLAN 5)" ;
-    top:area   184.0 ;                  # m²  (illustrative — from TopologicPy Cell geometry)
-    top:containsElement ex:gipsvagg_B5_1 ,   # the drywall this task acts on
-                        ex:slab_B5_1 .       # a slab another trade (screed) acts on
+    top:area   184.0 ;                       # m²  (illustrative — from TopologicPy Cell geometry)
+    bot:containsElement ex:gipsvagg_B5_1 ,   # the drywall this task acts on
+                        ex:slab_B5_1 ;       # a slab another trade (screed) acts on
+    bot:adjacentZone    ex:zone_C5 ;         # flow / handoff graph — unlocked by bot:Zone (Option B)
+    dtc:isLocatedIn     ex:storey_plan5 .    # building topology: the storey it sits in
+
+ex:zone_C5 a takt:TaktZone ;                 # neighbour stub (for the adjacency edge)
+    rdfs:label "C5 (PLAN 5)" .
+
+ex:storey_plan5 a bot:Storey ;               # bot:Storey ⊑ bot:Zone — valid dtc:isLocatedIn target
+    rdfs:label "PLAN 5" .
 
 # Two elements in the SAME zone, owned by DIFFERENT trades — this is why the
 # duration must read from takt:actsOn (operand) and not the zone total.
-ex:gipsvagg_B5_1 a top:Element ;
+ex:gipsvagg_B5_1 a top:Element ;             # top:Element ⊑ bot:Element
     rdfs:label "Gypsum wall set, B5:1"@en ;
-    top:area 184.0 .                    # m²  (the operand quantity for wagon 5.2)
+    top:area 184.0 .                         # m²  (the operand quantity for wagon 5.2)
 
 ex:slab_B5_1 a top:Element ;
     rdfs:label "Floor slab, B5:1"@en ;
-    top:area 95.0 .                     # belongs to the screed wagon, NOT 5.2
+    top:area 95.0 .                          # belongs to the screed wagon, NOT 5.2
 
 # -----------------------------------------------------------------------------
 # TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask = dtc:WorkPackage
@@ -86,8 +95,7 @@ ex:time_5_2_B5_1 a takt:TaktTime ;
     dtc:endTime       "2024-01-26T16:00:00"^^xsd:dateTime .   # (illustrative)
 
 # -----------------------------------------------------------------------------
-# Successor stub — just enough for the hasSuccessor edge to resolve. Modelling
-# every wagon in the zone is the generation loop's job, not a fixture's.
+# Successor stub — just enough for the hasSuccessor edge to resolve.
 # -----------------------------------------------------------------------------
 ex:task_5_3_B5_1 a takt:TaktTask ;
     rdfs:label "5.3 @ B5:1" ;

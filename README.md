@@ -21,7 +21,7 @@ at BOT, so they compose.
 
 | Path | What it is |
 |---|---|
-| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.3.0 minimal core. 17 terms: 5 classes, 6 object properties, 6 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC + IFC. |
+| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.3.1 minimal core. 17 terms: 5 classes, 6 object properties, 6 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC + IFC. The takt zone subclasses `top:FunctionalZone` (hence `bot:Zone`) for topology/adjacency. |
 | [`examples/lumi-b5-1.ttl`](examples/lumi-b5-1.ttl) | A worked **A-Box** — wagon 5.2 in zone B5:1 from a real takt plan, exercising every term, with duration computed end-to-end. |
 | [`schema/takt-topology-schema.yaml`](schema/takt-topology-schema.yaml) | Node + edge definitions for a **property-graph build** (Neo4j / NetworkX / rdflib), plus the generation loop. |
 | [`scripts/takt_production_ingester_plan.md`](scripts/takt_production_ingester_plan.md) | Implementation plan for an **IFC + wagon-table → takt graph** ingester. |

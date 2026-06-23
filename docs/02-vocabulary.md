@@ -8,7 +8,7 @@ schema entities — and they do **not** map one-to-one.
 
 | Takt / Lean term | What it is | In this repo (v0.3.0) |
 |---|---|---|
-| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The LUMI sheet's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `dtc:AsPlannedWorkingZone` |
+| **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The LUMI sheet's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `top:FunctionalZone` (⊑ `bot:Zone`) + `dtc:AsPlannedWorkingZone` |
 | **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer) |
 | **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` ⊑ `dtc:WorkPackage` |
 | **Train** | The ordered convoy of wagons. **Not an entity** — the `hasSuccessor` chain (a path). | *no class* — query the `takt:hasSuccessor` chain |
@@ -48,7 +48,7 @@ shape differs) and `skos:closeMatch`es IFC.
 |---|---|---|
 | `WagonType` | — *(DTC has no type layer)* | `IfcTaskType` |
 | `TaktTask` | ⊑ `dtc:WorkPackage` | `IfcTask` |
-| `TaktZone` | ⊑ `dtc:AsPlannedWorkingZone` | `IfcSpatialZone` |
+| `TaktZone` | ⊑ `dtc:AsPlannedWorkingZone` **+** ⊑ `top:FunctionalZone` (⊑ `bot:Zone`) | `IfcSpatialZone` |
 | `Crew` | ⊑ `dtc:AsPlannedWorkerCrew` | `IfcCrewResource` |
 | `TaktTime` | seeAlso `dtc:startTime`/`endTime` | `IfcTaskTime` |
 | `instantiates` | seeAlso `dtc:hasActivity` | `IfcRelDefinesByType` |

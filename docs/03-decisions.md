@@ -147,3 +147,43 @@ over DTC's reified precondition/assignment patterns.
   (or `dtc:ConstructionSchedule`) only if a plan-level container is needed.
 - Open: verify the DTC **version** (a v2 exists) and extract Schlenger's specific
   terms (its PDF was not machine-readable here) before any finer Schlenger mapping.
+
+---
+
+## ADR-8 — The takt zone is a `bot:Zone` (via `top:FunctionalZone`) (v0.3.1)
+
+**Decision.** Make `takt:TaktZone` subclass **both** `top:FunctionalZone` and
+`dtc:AsPlannedWorkingZone`. Since `top:FunctionalZone ⊑ top:Zone ⊑ bot:Zone`, a takt
+zone is now a `bot:Zone` — it lives in the BOT topology graph and carries
+`bot:adjacentZone`, `bot:containsElement`, and TopologicPy-computed geometry — while
+remaining a DTC planned working zone for the LBS/process semantics.
+
+**Why.** Reading DTC's published TTL revealed that DTC's `WorkingZone` is a **standalone
+class — NOT** a `bot:Zone`; it only relates to BOT via `dtc:isLocatedIn` (range
+`bot:Zone`). So under v0.3.0 (`TaktZone ⊑ dtc:AsPlannedWorkingZone` only), takt zones sat
+*outside* the BOT topology graph and had no adjacency. But takt planning is fundamentally
+about **flow between adjacent work areas**, and BOT models exactly that
+(`bot:adjacentZone`, `bot:intersectsZone` — the latter is also the right primitive for the
+vertical shafts/stairwells BIMTakt flagged as hard). Grounded in `rasmussen-2020-bot`
+(BOT's "subclass `bot:Zone`" extension pattern).
+
+**Why via `top:FunctionalZone` (the chosen option B), not a direct `bot:Zone` parent
+(option A).** `top:FunctionalZone` already *is* a `bot:Zone`, so subclassing it yields
+BOT membership **and** the TopologicPy geometry/adjacency computation in one parent —
+the engine that actually produces the zones and their `top:area`/adjacency. A direct
+`bot:Zone` parent (option A) would also work and couple less to TopologicPy, but the
+project already computes its spatial layer with TopologicPy, so option B is the natural
+fit. DTC-faithful option C (BOT only via `isLocatedIn`) was rejected: it leaves takt
+zones as non-topological, losing the adjacency takt needs.
+
+**Consequences.**
+- Multi-parent class: `takt:TaktZone ⊑ top:FunctionalZone, dtc:AsPlannedWorkingZone`.
+  Logically clean — DTC never declares `WorkingZone` disjoint from `bot:Zone`.
+- A-Box now uses `bot:containsElement` (was `top:containsElement`; the former is the
+  BOT-standard super-property), `bot:adjacentZone` (new — the flow/handoff graph), and
+  `dtc:isLocatedIn` to place the zone in its `bot:Storey`.
+- Couples the zone's spatial identity to TopologicPy (`top:`). Acceptable: TopologicPy
+  is the project's compute engine. If that coupling is ever unwanted, switch to a direct
+  `bot:Zone` parent (option A) — a one-line change.
+- A mild divergence from DTC's intent (it deliberately separates working zone from
+  topology zone); justified for takt because adjacency/flow is the point.

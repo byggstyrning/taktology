@@ -20,9 +20,10 @@ takt-specific layer. Alignment is by *reference* (no `owl:imports`) to stay ligh
 │          AsPlannedWorkingZone, isPerformedIn, hasTarget               │
 │          (imports bot:; reified sequence & resource patterns)         │
 ├─────────────────────────────────────────────────────────────────────┤
-│  top:    TopologicPy — GEOMETRY/GRAPH engine (rdfs:seeAlso)           │
+│  top:    TopologicPy — TaktZone ⊑ FunctionalZone (+ geometry/graph)   │
 │          Cell/Element/Path, area, volume, containsElement            │
-│  bot:    topology vocabulary (reached via dtc: and top:)              │
+│  bot:    topology — FunctionalZone ⊑ bot:Zone, so a takt zone IS a    │
+│          bot:Zone (adjacency, containment, flow)                     │
 │  ifc:    IFC 4.3 process schema — closeMatch interchange anchor       │
 │  prov:   provenance for database-derived rates                       │
 └─────────────────────────────────────────────────────────────────────┘
@@ -30,6 +31,13 @@ takt-specific layer. Alignment is by *reference* (no `owl:imports`) to stay ligh
 
 `dtc:` (the semantic schema) and `top:` (the compute engine that produces zones and
 quantities) meet at `bot:`, which both align to — so they compose without conflict.
+As of **v0.3.1**, `takt:TaktZone` subclasses **both** `top:FunctionalZone` (which is a
+`bot:Zone` — giving the zone 3D extent, `bot:adjacentZone`, `bot:containsElement`, and
+TopologicPy-computed geometry) **and** `dtc:AsPlannedWorkingZone` (the LBS/process
+semantics). This matters because DTC's own `WorkingZone` is *not* a `bot:Zone` (it only
+`isLocatedIn` one), so without the `top:FunctionalZone` parent, takt zones would sit
+outside the BOT topology graph and lose adjacency/flow reasoning. See
+[03-decisions.md](03-decisions.md) ADR-8.
 
 ## Why this shape
 
