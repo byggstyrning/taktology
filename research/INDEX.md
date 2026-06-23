@@ -10,8 +10,8 @@ the same day with a sixth **Chalmers** cluster (BIM-takt, breakdown structures, 
 - **Decisions the corpus feeds:** [decisions/](decisions/)
 - **Raw discovery runs:** [discoveries/](discoveries/) (ephemeral until promoted)
 
-> **Verification status.** Every source has a real, checked URL. 36/48 are fully
-> verified; 12 are `partial` (a specific field — DOI, author list, venue, or version
+> **Verification status.** Every source has a real, checked URL. 38/48 are fully
+> verified; 10 are `partial` (a specific field — DOI, author list, venue, or version
 > — still needs a manual confirm; flagged per row and in `manifest.json`). No PDFs
 > are committed — open-access mirrors are linked where the publisher copy is paywalled.
 
@@ -92,8 +92,8 @@ Legend — status: `adopted` (shapes the design, cited in a decision) · `influe
 | `viklund-tallgren-2021-4d-collaborative-planning-itcon` | 4D modelling via virtual collaborative planning | 2021 | reference | ✔ |
 | `viklund-tallgren-2018-collaborative-planning-lic` | Developing a collaborative planning tool (licentiate) | 2018 | reference | ◑ |
 | `disney-2024-total-bim-celsius-sasbe` | Embracing BIM in its totality (Total BIM case) | 2024 | reference | ✔ |
-| `ljung-2024-work-preparation-ccc` | Significance of Work Preparation Planning | 2024 | reference | ◑ |
-| `ljung-2024-phasing-iso81346-arcom` | Phasing interoperability via ISO 81346 coding | 2024 | reference | ◑ |
+| `ljung-2024-work-preparation-ccc` | Significance of a Shared Breakdown Structure (work prep) | 2024 | reference | ✔ |
+| `ljung-2024-phasing-iso81346-arcom` | Phasing interoperability via ISO 81346 coding | 2024 | reference | ✔ |
 
 ---
 
@@ -224,6 +224,13 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
   confirm DTC version (v2 exists), extract Schlenger's ontology terms for a finer map.
 - Gaps #2 (geometry-driven zoning), #3 (wagon/train vocabulary), #4 (genealogy roots)
   remain **open** — re-run discovery.
+- **Ljung pass — 2026-06-23.** Read the TBS licentiate full text (incl. its appended-papers
+  list) + the prerequisites paper. Confirmed Ljung's research = the licentiate + Papers I–IV,
+  **all already in the corpus** (no new sources). Resolved both 2024 `partial`s → verified:
+  Paper III's authoritative title includes *"a Shared Breakdown Structure"*; Paper IV's
+  ARCOM authors/editors (Thomson & Neilson) confirmed. Enriched the notes for the TBS
+  licentiate, prerequisites, VPP (2020), and added notes for Papers III & IV. The TBS =
+  **space × time × responsibility**, which v0.4.0's `takt:partOfProcess` realizes.
 - **Chalmers cluster (F) added 2026-06-23** (11 sources, from two user-supplied seeds):
   strengthens *BIM-based takt in practice*, *collaborative BIM scheduling / 4D*, and
   *Total BIM / single-source-of-truth* coverage. `ljung-2026-tbs-integrated-delivery`

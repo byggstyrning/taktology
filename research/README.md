@@ -30,7 +30,7 @@ research/
 
 - **48 sources**: 22 adopted · 9 influenced · 12 reference · 5 candidate (six clusters,
   incl. a Chalmers cluster of 11: BIM-takt, breakdown structures, Total BIM).
-- **36 fully verified**, 12 `partial` (one field — DOI/authors/venue/version — still
+- **38 fully verified**, 10 `partial` (one field — DOI/authors/venue/version — still
   needs a manual confirm; flagged per row in `manifest.json` and INDEX).
 - **No PDFs are committed** — licenses unchecked, and many are paywalled.
   Open-access mirrors (IGLC, eScholarship, Aaltodoc, NSF PAR, CEUR, repositories) are

@@ -642,7 +642,7 @@
     },
     {
       "id": "ljung-2024-work-preparation-ccc",
-      "title": "The Significance of Work Preparation Planning for a Predictable Execution",
+      "title": "The Significance of a Shared Breakdown Structure for Work Preparation Planning for a Predictable Execution",
       "authors": "Ljung, E.; Viklund Tallgren, M. (Chalmers)",
       "year": 2024,
       "venue": "Creative Construction Conference 2024 (CCC2024), Prague, paper CCC2024-159",
@@ -651,21 +651,21 @@
       "access": "unknown",
       "cluster": "bim-takt-breakdown",
       "status": "reference",
-      "verified": "partial",
-      "note": "Shared breakdown structure between disciplines/documents increases traceability/predictability (two rooftop-assembly cases). Published title differs slightly from a ResearchGate variant — confirm. OA status unconfirmed."
+      "verified": true,
+      "note": "Paper III of Ljung's TBS licentiate. Full title CONFIRMED via the licentiate's appended-papers list (includes 'a Shared Breakdown Structure' — the Chalmers record used a shortened form). Shared breakdown across disciplines/documents increases traceability/predictability (two rooftop-assembly cases). OA status still unconfirmed."
     },
     {
       "id": "ljung-2024-phasing-iso81346-arcom",
       "title": "Can Interoperability Between Disciplines Be Improved by Adding Phasing Information Using Standardised Coding?",
       "authors": "Ljung, E.; Viklund Tallgren, M. (Chalmers)",
       "year": 2024,
-      "venue": "ARCOM 2024 (40th Annual Conf. of the Assoc. of Researchers in Construction Management), London, 111–120",
+      "venue": "ARCOM 2024 (40th Annual Conf. of the Assoc. of Researchers in Construction Management), eds. Thomson & Neilson, London, 111–120",
       "url": "https://research.chalmers.se/en/publication/543702",
       "access": "unknown",
       "cluster": "bim-takt-breakdown",
       "status": "reference",
-      "verified": "partial",
-      "note": "Proposes ISO/IEC 81346 reference-designation coding to add phasing info linking disciplines — relevant to a stable zone/phase IDENTIFIER scheme for interoperable takt zones. No DOI found (ISBN only); OA unconfirmed."
+      "verified": true,
+      "note": "Paper IV of Ljung's TBS licentiate; authors/venue/editors (Thomson & Neilson) CONFIRMED via the licentiate's appended-papers list. Proposes ISO/IEC 81346 reference-designation coding to add phasing info linking disciplines — relevant to a stable zone/phase IDENTIFIER scheme for interoperable takt zones. No DOI (ISBN-only proceedings); OA unconfirmed."
     }
   ]
 }
