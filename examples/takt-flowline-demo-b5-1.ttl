@@ -75,8 +75,9 @@ ex:slab_B5_1 a top:Element ;
 ex:task_5_1_B5_1 a takt:TaktTask ;
     rdfs:label "5.1 @ B5:1" ;
     takt:instantiates ex:wagon_5_1 ;        # -> template
-    takt:performedIn  ex:zone_B5_1 ;        # WHERE (location / work area)
-    takt:actsOn       ex:gipsvagg_B5_1 ;    # WHAT  (operand — drives the quantity)
+    takt:performedIn  ex:zone_B5_1 ;        # WHERE  (location / work area = space)
+    takt:partOfProcess ex:process_buildingB ; # WHICH PROCESS (Ljung 2026 TBS: the space×time×responsibility cell)
+    takt:actsOn       ex:gipsvagg_B5_1 ;    # WHAT   (operand — drives the quantity)
     takt:performedBy  ex:crew_SUB_03 ;
     takt:hasTaktTime  ex:time_5_1_B5_1 ;
     takt:hasSuccessor ex:task_5_2_B5_1 ;    # the train edge (the chain IS the train)
@@ -101,3 +102,11 @@ ex:time_5_1_B5_1 a takt:TaktTime ;
 ex:task_5_2_B5_1 a takt:TaktTask ;
     rdfs:label "5.2 @ B5:1" ;
     takt:performedIn ex:zone_B5_1 .
+
+# -----------------------------------------------------------------------------
+# CONSTRUCTION PROCESS — the on-site production process the task is part of.
+# Reuses DTC's process backbone (dtc:Process); per Ljung (2026), zone (space) ×
+# takt (time) × process (responsibility) bound on one task is a TBS cell.
+# -----------------------------------------------------------------------------
+ex:process_buildingB a dtc:Process ;
+    rdfs:label "Building B production process"@en .

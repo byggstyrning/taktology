@@ -2,13 +2,13 @@
 # Taktology — a minimal, research-grounded vocabulary for takt production planning
 # =============================================================================
 #
-# v0.3.1 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
+# v0.4.0 — MINIMAL CORE, aligned to the Digital Twin Construction (DTC) ontology.
 #          The takt zone also subclasses top:FunctionalZone (hence bot:Zone) for topology
 #          — adjacency, element containment, and TopologicPy-computed geometry.
 #
 # What this is
-#   The canonical takt skeleton: 5 classes, 6 object properties, 6 datatype
-#   properties (17 terms). It adds ONLY what existing ontologies lack — the takt
+#   The canonical takt skeleton: 5 classes, 7 object properties, 6 datatype
+#   properties (18 terms). It adds ONLY what existing ontologies lack — the takt
 #   type-layer (wagon), the takt rhythm, and work-density effort values — and
 #   reuses the DTC ontology for the process / zone / resource backbone.
 #
@@ -57,7 +57,7 @@
 <https://w3id.org/taktology> a owl:Ontology ;
     dcterms:title "Taktology — takt production planning vocabulary (minimal core)"@en ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.3.1" ;
+    owl:versionInfo "0.4.0" ;
     rdfs:comment """Minimal core takt-planning vocabulary. Specializes the Digital
         Twin Construction (DTC) ontology for takt and adds the takt-specific
         type-layer, rhythm and work-density values. Aligned to IFC 4.3 by
@@ -131,7 +131,7 @@ takt:TaktTime a owl:Class ;
                    <https://doi.org/10.24928/2017/0297> .       # binninger-2017-technical-takt
 
 # =============================================================================
-# OBJECT PROPERTIES (6)
+# OBJECT PROPERTIES (7)
 # =============================================================================
 
 takt:instantiates a owl:ObjectProperty ;
@@ -203,6 +203,21 @@ takt:hasTaktTime a owl:ObjectProperty ;
     rdfs:domain takt:TaktTask ;
     rdfs:range  takt:TaktTime ;
     dcterms:source <https://iglc.net/Papers/Details/1297> .   # haghsheno-2016-history
+
+takt:partOfProcess a owl:ObjectProperty ;
+    rdfs:label "part of process"@en ;
+    rdfs:comment """The on-site construction PROCESS this takt task is part of. Binding
+        process membership together with takt:performedIn (the takt ZONE = space) and
+        takt:hasTaktTime (the takt = time) makes the task one cell of a Spatio-Temporal
+        Breakdown Structure (TBS; Ljung 2026) — the space×time×responsibility structure
+        that enables integrated, flow-oriented delivery. Reuses DTC's process backbone
+        (Process > WorkPackage); the train (the hasSuccessor chain) stays a path, not a
+        class. closeMatch IfcRelNests (IFC's nesting of tasks within a process)."""@en ;
+    rdfs:domain takt:TaktTask ;
+    rdfs:range  dtc:Process ;
+    skos:closeMatch ifc:IfcRelNests ;
+    rdfs:seeAlso <https://ceur-ws.org/Vol-3824/paper3.pdf> ;   # schlenger-2024 (schedule-process ontology; process-layer prior art)
+    dcterms:source <https://research.chalmers.se/publication/551855> .   # ljung-2026-tbs-integrated-delivery (TBS)
 
 # =============================================================================
 # DATATYPE PROPERTIES (6) — the takt-specific values DTC does not carry
