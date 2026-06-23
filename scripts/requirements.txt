@@ -1,0 +1,4 @@
+# Dependencies for scripts/generate_ontology_diagram.py
+# (pure-Python diagram render — no SVG rasteriser / Graphviz / browser needed)
+rdflib>=7.0
+Pillow>=9.2

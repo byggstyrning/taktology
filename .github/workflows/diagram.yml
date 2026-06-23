@@ -1,0 +1,39 @@
+name: ontology-diagram
+
+# Keep the README graph in sync with the ontology. If a change to takt.ttl (or
+# the generator) would alter the rendered PNG or the README image block, this
+# fails — regenerate locally with `python scripts/generate_ontology_diagram.py`
+# and commit the result.
+on:
+  push:
+    paths:
+      - "ontology/takt.ttl"
+      - "scripts/generate_ontology_diagram.py"
+      - "scripts/assets/fonts/**"
+      - ".github/workflows/diagram.yml"
+  pull_request:
+    paths:
+      - "ontology/takt.ttl"
+      - "scripts/generate_ontology_diagram.py"
+      - "scripts/assets/fonts/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install -r scripts/requirements.txt
+      - run: python scripts/generate_ontology_diagram.py
+      - name: Fail if the committed diagram / README is stale
+        run: |
+          if ! git diff --quiet -- docs/diagrams README.md; then
+            echo "::error::Ontology diagram is out of date. Run:"
+            echo "::error::  python scripts/generate_ontology_diagram.py"
+            echo "::error::and commit docs/diagrams/ + README.md."
+            git --no-pager diff --stat -- docs/diagrams README.md
+            exit 1
+          fi
+          echo "Diagram is in sync."
