@@ -131,6 +131,34 @@
   #inspector a { color:var(--accent); text-decoration:none; cursor:pointer; }
   #inspector .rev { color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; margin-top:12px; }
   .hint { color:var(--muted); font-style:italic; }
+
+  /* ---- hover tooltip (shared by grid, graph and 3D overlay) ---- */
+  #tip {
+    position:fixed; z-index:50; pointer-events:none; display:none; max-width:280px;
+    background:rgba(14,17,22,.96); border:1px solid var(--accent); border-radius:8px;
+    padding:7px 10px; font-size:12px; box-shadow:0 4px 18px rgba(0,0,0,.5);
+  }
+  #tip b { display:block; font-size:12.5px; }
+  #tip .k { color:var(--accent); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+  #tip .f { color:var(--muted); }
+
+  /* ---- interactive legend: wagon mode chips ---- */
+  .legend .row.mode { cursor:pointer; border-radius:6px; padding:2px 4px; margin:1px -4px; }
+  .legend .row.mode:hover { background:var(--panel2); }
+  .legend .row.mode.modeoff { opacity:.32; }
+
+  /* wagon filtered out -> fade everywhere */
+  .chip.waggedoff { opacity:.18; filter:saturate(.2); }
+  .gnode.waggedoff { opacity:.1; }
+  .gnode.hov circle { stroke:#fff !important; }
+
+  /* ---- 3D graph overlay (Graph Studio strategy: world-anchored, projected per frame) ---- */
+  #overlaySvg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  #overlaySvg circle { pointer-events:auto; cursor:pointer; }
+  #overlaySvg text {
+    fill:var(--text); font-size:10px; pointer-events:none;
+    paint-order:stroke; stroke:rgba(14,17,22,.9); stroke-width:2.5px;
+  }
 </style>
 </head>
 <body>
@@ -154,16 +182,19 @@
       <div class="paneltitle">Knowledge graph — takt.ttl semantics</div>
       <label class="toggle"><input type="checkbox" id="tglElements"> elements</label>
       <label class="toggle"><input type="checkbox" id="tglCrews"> crews</label>
+      <label class="toggle"><input type="checkbox" id="tglProcess"> process</label>
+      <label class="toggle"><input type="checkbox" id="tglPlan"> plan</label>
     </div>
     <div class="body"><svg id="graphSvg"></svg></div>
   </section>
 
   <section class="panel">
     <div class="panelbar">
-      <div class="paneltitle">Building — 3 storeys, fit-out builds up per takt</div>
+      <div class="paneltitle">Building — fit-out builds up per takt</div>
       <label class="toggle"><input type="checkbox" id="tglStruct" checked> structural</label>
       <label class="toggle"><input type="checkbox" id="tglArch" checked> architectural</label>
       <label class="toggle"><input type="checkbox" id="tglMep" checked> MEP</label>
+      <label class="toggle" title="Knowledge graph anchored to the building (Graph Studio overlay)"><input type="checkbox" id="tglOverlay" checked> graph</label>
     </div>
     <div class="body"><div id="threeMount"></div></div>
   </section>
@@ -174,6 +205,8 @@
     <div id="inspector"><div class="hint">Click a cell, node, zone or element.</div></div>
   </section>
 </div>
+
+<div id="tip"></div>
 
 <script type="module">
 import * as THREE from 'three';
@@ -279,6 +312,7 @@ function buildModel({ spo, ops }) {
     zone: val(spo, iri, T('performedIn')),
     wagon: val(spo, iri, T('instantiates')),
     crew: val(spo, iri, T('performedBy')),
+    process: val(spo, iri, T('partOfProcess')),
     actsOn: vals(spo, iri, T('actsOn')),
     succZone: vals(spo, iri, T('hasSuccessorSameZone')),
     succWagon: vals(spo, iri, T('hasSuccessorSameWagon')),
@@ -288,6 +322,7 @@ function buildModel({ spo, ops }) {
   }));
 
   const crews = byType(T('Crew')).map(iri => ({ iri, label: label(iri) }));
+  const processes = byType(NS.dtc + 'Process').map(iri => ({ iri, label: label(iri) }));
   const planIri = byType(T('TaktGraph'))[0];
   const durDays = parseInt((val(spo, planIri, T('taktDuration')) ?? 'P7D').match(/(\d+)D/)?.[1] ?? '7', 10);
   const planStart = new Date(val(spo, planIri, T('planStart')) ?? '2024-01-01');
@@ -303,20 +338,110 @@ function buildModel({ spo, ops }) {
   const elements = [...new Set(tasks.flatMap(t => t.actsOn).concat(zones.flatMap(z => z.elements)))]
     .map(iri => ({ iri, label: label(iri) }));
 
-  return { spo, ops, label, wagons, wagonOf, zones, tasks, crews, elements,
-           buildSlot, wagonSlotInZone,
+  const elemWagon = {};   // operand element -> the wagon whose task acts on it
+  tasks.forEach(t => { if (t.wagon) t.actsOn.forEach(e => { elemWagon[e] ??= t.wagon; }); });
+
+  return { spo, ops, label, wagons, wagonOf, zones, tasks, crews, processes, elements,
+           buildSlot, wagonSlotInZone, elemWagon,
            plan: { iri: planIri, label: label(planIri), durDays, planStart }, maxSlot, slotDate };
 }
 
 /* ========================================================================
    4. App state + cross-view sync
 ======================================================================== */
-const state = { slot: 1, selected: null, playing: false };
+const state = { slot: 1, selected: null, hover: null, playing: false, wagonOff: new Set() };
 const listeners = [];
 const onChange = (fn) => listeners.push(fn);
 const emit = () => listeners.forEach(fn => fn());
 const setSlot = (s) => { state.slot = s; emit(); };
 const select = (iri) => { state.selected = iri; emit(); };
+const hover = (iri) => { if (state.hover !== iri) { state.hover = iri; emit(); } };
+const wagonEnabled = (wIri) => !wIri || !state.wagonOff.has(wIri);
+// a task/element/wagon is "mode-off" when its wagon type is toggled off in the legend
+const isWaggedOff = (m, iri) => {
+  if (state.wagonOff.size === 0) return false;
+  if (m.wagonOf[iri]) return !wagonEnabled(iri);
+  const t = m.tasks.find(t => t.iri === iri);
+  if (t) return t.wagon ? !wagonEnabled(t.wagon) : false;
+  if (m.elemWagon[iri]) return !wagonEnabled(m.elemWagon[iri]);
+  return false;
+};
+
+/* ---- shared hover tooltip -------------------------------------------- */
+const tipEl = document.getElementById('tip');
+function tipShow(m, iri, x, y) {
+  const kind = (() => { const t = vals(m.spo, iri, RDF_TYPE)[0]; return t ? qname(t) : ''; })();
+  const t = m.tasks.find(t => t.iri === iri);
+  let facts = '';
+  if (t) {
+    const bits = [];
+    if (t.zone) bits.push(m.label(t.zone));
+    bits.push('takt T' + t.slot);
+    if (t.crew) bits.push(m.label(t.crew));
+    if (t.isBuffer) bits.push('capacity buffer');
+    if (t.isMilestone) bits.push('milestone');
+    facts = bits.join(' · ');
+  } else if (m.wagonOf[iri]) {
+    facts = 'trade: ' + (m.wagonOf[iri].trade ?? '—') + ' · click legend chip to toggle';
+  } else if (m.elemWagon[iri]) {
+    facts = 'built by ' + (m.wagonOf[m.elemWagon[iri]]?.short ?? '');
+  }
+  tipEl.innerHTML = `<span class="k">${kind}</span><b>${m.label(iri)}</b>${facts ? `<span class="f">${facts}</span>` : ''}`;
+  tipEl.style.display = 'block';
+  tipMove(x, y);
+}
+function tipMove(x, y) {
+  const pad = 14;
+  const r = tipEl.getBoundingClientRect();
+  tipEl.style.left = Math.min(x + pad, innerWidth - r.width - 8) + 'px';
+  tipEl.style.top = Math.min(y + pad, innerHeight - r.height - 8) + 'px';
+}
+function tipHide() { tipEl.style.display = 'none'; }
+
+/* ---- shared graph data (drives BOTH the force view and the 3D overlay);
+   node kinds follow the panel's mode toggles ---------------------------- */
+function graphData(m) {
+  const showEl = document.getElementById('tglElements').checked;
+  const showCrew = document.getElementById('tglCrews').checked;
+  const showProc = document.getElementById('tglProcess').checked;
+  const showPlan = document.getElementById('tglPlan').checked;
+  const nodes = [], links = [];
+  const add = (iri, kind, label, color, r) => nodes.push({ id: iri, kind, label, color, r });
+  m.zones.forEach(z => add(z.iri, 'zone', z.label, '#3fa7a0', 9));
+  m.wagons.forEach(w => add(w.iri, 'wagon', w.short, w.color, 9));
+  if (showCrew) m.crews.forEach(c => add(c.iri, 'crew', c.label, '#8a93a3', 6));
+  if (showProc) m.processes.forEach(p => add(p.iri, 'process', m.label(p.iri), '#4e9e77', 9));
+  if (showPlan) add(m.plan.iri, 'plan', m.plan.label, '#5aa2e8', 11);
+  if (showEl) m.elements.forEach(e => add(e.iri, 'element', m.label(e.iri).split(',')[0], '#7d8b6a', 5));
+  m.tasks.forEach(t => {
+    const w = m.wagonOf[t.wagon];
+    const c = t.isBuffer ? '#6b7280' : t.isMilestone ? '#c0392b' : (w ? w.color : '#888');
+    add(t.iri, 'task', '', c, 6);
+  });
+  const nodeSet = new Set(nodes.map(n => n.id));
+  const L = (s, o, kind) => { if (nodeSet.has(s) && nodeSet.has(o)) links.push({ source: s, target: o, kind }); };
+  m.tasks.forEach(t => {
+    if (t.zone) L(t.iri, t.zone, 'performedIn');
+    if (t.wagon) L(t.iri, t.wagon, 'instantiates');
+    if (showCrew && t.crew) L(t.iri, t.crew, 'performedBy');
+    if (showProc && t.process) L(t.iri, t.process, 'partOfProcess');
+    if (showPlan) L(m.plan.iri, t.iri, 'hasProcess');
+    if (showEl) t.actsOn.forEach(e => L(t.iri, e, 'actsOn'));
+    t.succZone.forEach(o => L(t.iri, o, 'succZone'));
+    t.succWagon.forEach(o => L(t.iri, o, 'succWagon'));
+    t.succ.forEach(o => L(t.iri, o, 'succ'));
+  });
+  m.zones.forEach(z => z.adjacent.forEach(o => L(z.iri, o, 'adjacent')));
+  return { nodes, links };
+}
+const MODE_TOGGLES = ['tglElements', 'tglCrews', 'tglProcess', 'tglPlan'];
+const EDGE_STYLE = {
+  succZone:  { color: '#e07a6a' }, succWagon: { color: '#6aa7e0' }, succ: { color: '#a9b3c0' },
+  performedIn: { color: '#3fa7a0' }, instantiates: { color: '#c9a44e' },
+  performedBy: { color: '#8a93a3' }, actsOn: { color: '#7d8b6a' },
+  partOfProcess: { color: '#4e9e77' }, hasProcess: { color: '#5aa2e8', dashed: true },
+  adjacent: { color: '#3fa7a0', dashed: true },
+};
 
 /* ========================================================================
    5. Takt plan grid (planner layer)
@@ -338,17 +463,23 @@ function renderGrid(m) {
           const w = m.wagonOf[t.wagon];
           const cls = t.isBuffer ? 'buffer' : t.isMilestone ? 'milestone' : '';
           const sel = state.selected === t.iri ? ' sel' : '';
+          const off = isWaggedOff(m, t.iri) ? ' waggedoff' : '';
           const style = w ? `style="border-left-color:${w.color};background:${w.color}22"` : '';
           const head = t.isBuffer ? 'buffer' : t.isMilestone ? '◆ handover' : (w ? w.short : t.label);
           const sub = t.isBuffer ? 'capacity' : t.isMilestone ? 'milestone' : (t.crew ? m.label(t.crew) : '');
-          html += `<div class="chip ${cls}${sel}" ${style} data-iri="${t.iri}"><b>${head}</b><span>${sub}</span></div>`;
+          html += `<div class="chip ${cls}${sel}${off}" ${style} data-iri="${t.iri}"><b>${head}</b><span>${sub}</span></div>`;
         }
         html += '</td>';
       }
       html += '</tr>';
     }
     tbl.innerHTML = html;
-    tbl.querySelectorAll('[data-iri]').forEach(el => el.addEventListener('click', () => select(el.dataset.iri)));
+    tbl.querySelectorAll('[data-iri]').forEach(el => {
+      el.addEventListener('click', () => select(el.dataset.iri));
+      el.addEventListener('mouseenter', (e) => { hover(el.dataset.iri); tipShow(m, el.dataset.iri, e.clientX, e.clientY); });
+      el.addEventListener('mousemove', (e) => tipMove(e.clientX, e.clientY));
+      el.addEventListener('mouseleave', () => { hover(null); tipHide(); });
+    });
   };
   draw(); onChange(draw);
 }
@@ -361,61 +492,29 @@ function renderGraph(m) {
   const root = svg.append('g');
   svg.call(d3.zoom().scaleExtent([0.2, 3]).on('zoom', (e) => root.attr('transform', e.transform)));
   const defs = svg.append('defs');
-  const EDGE = {
-    succZone:  { color: '#e07a6a' }, succWagon: { color: '#6aa7e0' }, succ: { color: '#a9b3c0' },
-    performedIn: { color: '#3fa7a0' }, instantiates: { color: '#c9a44e' },
-    performedBy: { color: '#8a93a3' }, actsOn: { color: '#7d8b6a' },
-    adjacent: { color: '#3fa7a0', dashed: true },
-  };
-  Object.entries(EDGE).forEach(([k, e]) => defs.append('marker')
+  Object.entries(EDGE_STYLE).forEach(([k, e]) => defs.append('marker')
     .attr('id', 'arr-' + k).attr('viewBox', '0 -4 8 8').attr('refX', 13).attr('markerWidth', 6)
     .attr('markerHeight', 6).attr('orient', 'auto').append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', e.color));
 
-  const build = () => {
-    const showEl = document.getElementById('tglElements').checked;
-    const showCrew = document.getElementById('tglCrews').checked;
-    const nodes = [], links = [];
-    const add = (iri, kind, label, color, r) => nodes.push({ id: iri, kind, label, color, r });
-    m.zones.forEach(z => add(z.iri, 'zone', z.label, '#3fa7a0', 9));
-    m.wagons.forEach(w => add(w.iri, 'wagon', w.short, w.color, 9));
-    if (showCrew) m.crews.forEach(c => add(c.iri, 'crew', c.label, '#8a93a3', 6));
-    if (showEl) m.elements.forEach(e => add(e.iri, 'element', m.label(e.iri).split(',')[0], '#7d8b6a', 5));
-    m.tasks.forEach(t => {
-      const w = m.wagonOf[t.wagon];
-      const c = t.isBuffer ? '#6b7280' : t.isMilestone ? '#c0392b' : (w ? w.color : '#888');
-      add(t.iri, 'task', '', c, 6);
-    });
-    const nodeSet = new Set(nodes.map(n => n.id));
-    const L = (s, o, kind) => { if (nodeSet.has(s) && nodeSet.has(o)) links.push({ source: s, target: o, kind }); };
-    m.tasks.forEach(t => {
-      if (t.zone) L(t.iri, t.zone, 'performedIn');
-      if (t.wagon) L(t.iri, t.wagon, 'instantiates');
-      if (showCrew && t.crew) L(t.iri, t.crew, 'performedBy');
-      if (showEl) t.actsOn.forEach(e => L(t.iri, e, 'actsOn'));
-      t.succZone.forEach(o => L(t.iri, o, 'succZone'));
-      t.succWagon.forEach(o => L(t.iri, o, 'succWagon'));
-      t.succ.forEach(o => L(t.iri, o, 'succ'));
-    });
-    m.zones.forEach(z => z.adjacent.forEach(o => L(z.iri, o, 'adjacent')));
-    return { nodes, links };
-  };
-
   let sim, restyle;
   const draw = () => {
-    const { nodes, links } = build();
+    const { nodes, links } = graphData(m);
     root.selectAll('*').remove();
     const { width, height } = svg.node().getBoundingClientRect();
     const link = root.append('g').selectAll('path').data(links).join('path')
-      .attr('class', 'glink').attr('stroke', d => EDGE[d.kind].color)
+      .attr('class', 'glink').attr('stroke', d => EDGE_STYLE[d.kind].color)
       .attr('stroke-width', d => d.kind.startsWith('succ') ? 1.6 : 1)
-      .attr('stroke-dasharray', d => EDGE[d.kind].dashed ? '4 3' : null)
+      .attr('stroke-dasharray', d => EDGE_STYLE[d.kind].dashed ? '4 3' : null)
       .attr('opacity', .8).attr('marker-end', d => d.kind === 'adjacent' ? null : `url(#arr-${d.kind})`);
     const node = root.append('g').selectAll('g').data(nodes).join('g').attr('class', 'gnode')
       .call(d3.drag()
         .on('start', (e, d) => { if (!e.active) sim.alphaTarget(.2).restart(); d.fx = d.x; d.fy = d.y; })
         .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
         .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = d.fy = null; }))
-      .on('click', (e, d) => { e.stopPropagation(); select(d.id); });
+      .on('click', (e, d) => { e.stopPropagation(); select(d.id); })
+      .on('mouseenter', (e, d) => { hover(d.id); tipShow(m, d.id, e.clientX, e.clientY); })
+      .on('mousemove', (e) => tipMove(e.clientX, e.clientY))
+      .on('mouseleave', () => { hover(null); tipHide(); });
     node.append('circle').attr('r', d => d.r)
       .attr('fill', d => d.color + (d.kind === 'task' ? '' : '55'))
       .attr('stroke', d => d.color).attr('stroke-width', 1.5);
@@ -431,22 +530,26 @@ function renderGraph(m) {
         node.attr('transform', d => `translate(${d.x},${d.y})`);
       });
 
+    const focusIri = () => state.hover ?? state.selected;
     restyle = () => {
       const active = new Set(m.tasks.filter(t => t.slot === state.slot).map(t => t.iri));
+      const f = focusIri();
       node.select('circle')
-        .attr('stroke-width', d => d.id === state.selected ? 3.5 : (active.has(d.id) ? 2.6 : 1.5))
-        .attr('stroke', d => d.id === state.selected ? '#fff' : d.color)
+        .attr('stroke-width', d => d.id === f ? 3.5 : (active.has(d.id) ? 2.6 : 1.5))
+        .attr('stroke', d => d.id === f ? '#fff' : d.color)
         .attr('r', d => active.has(d.id) && d.kind === 'task' ? d.r + 1.5 : d.r);
-      node.classed('dim', d => state.selected && d.id !== state.selected &&
-        !links.some(l => (l.source.id === state.selected && l.target.id === d.id) || (l.target.id === state.selected && l.source.id === d.id)));
-      link.classed('dim', l => state.selected && l.source.id !== state.selected && l.target.id !== state.selected);
+      node.classed('dim', d => f && d.id !== f &&
+        !links.some(l => (l.source.id === f && l.target.id === d.id) || (l.target.id === f && l.source.id === d.id)));
+      node.classed('waggedoff', d => isWaggedOff(m, d.id));
+      node.classed('hov', d => d.id === state.hover);
+      link.classed('dim', l => (f && l.source.id !== f && l.target.id !== f) ||
+        isWaggedOff(m, l.source.id) || isWaggedOff(m, l.target.id));
     };
     restyle();
   };
   draw();
   onChange(() => restyle && restyle());
-  document.getElementById('tglElements').addEventListener('change', draw);
-  document.getElementById('tglCrews').addEventListener('change', draw);
+  MODE_TOGGLES.forEach(id => document.getElementById(id).addEventListener('change', draw));
   svg.on('click', () => select(null));
 }
 

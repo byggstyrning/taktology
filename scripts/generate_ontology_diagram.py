@@ -382,13 +382,13 @@ def dashed_polyline(d, pts, color, width, dash=12, gap=8):
                 acc = 0.0
 
 
-def text_center(d, xy, text, font, color, halo=False):
+def text_center(d, xy, text, font, color, halo=False, pad=(6, 2.5), radius=8):
     cx, cy = sc(xy[0]), sc(xy[1])
     if halo:
         bb = d.textbbox((cx, cy), text, font=font, anchor="mm")
-        px, py = int(sc(6)), int(sc(2.5))
+        px, py = int(sc(pad[0])), int(sc(pad[1]))
         d.rounded_rectangle([bb[0] - px, bb[1] - py, bb[2] + px, bb[3] + py],
-                            radius=int(sc(8)), fill=COL["pill"], outline=COL["pill_edge"],
+                            radius=int(sc(radius)), fill=COL["pill"], outline=COL["pill_edge"],
                             width=int(sc(1)))
     d.text((cx, cy), text, font=font, fill=color, anchor="mm")
 
@@ -483,11 +483,12 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
     f_slab = fnt(True, 19)
     f_ext = fnt(False, 15)
 
-    # ---- header -----------------------------------------------------------
-    text_center(d, (W / 2, 46), f"taktology  v{version}", f_title, COL["title"])
-    text_center(d, (W / 2, 90),
+    # ---- header (haloed: bare glyphs on the transparent canvas fuzz on dark themes)
+    text_center(d, (W / 2, 44), f"taktology  v{version}", f_title, COL["title"],
+                halo=True, pad=(18, 8), radius=16)
+    text_center(d, (W / 2, 95),
                 "takt production planning as a knowledge graph — the plan you draw is the graph you query",
-                f_sub, COL["subtitle"])
+                f_sub, COL["subtitle"], halo=True, pad=(10, 4), radius=11)
 
     for box in (P1, P2, P3):
         rounded(d, box, 18, COL["panel_fill"], COL["panel_edge"], 1.8)
@@ -497,34 +498,37 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
     # ========================================================================
     x0, y0, x1, y1 = P1
     text_left(d, (x0 + 26, y0 + 30), "1 · THE TAKT PLAN — what planners draw", f_ptitle, COL["panel_title"])
+    # badge 4 tag, top-right: the whole grid IS the plan
+    badge(d, (x1 - 36, y0 + 30), 4, f_badge, r=10)
+    d.text((sc(x1 - 52), sc(y0 + 30)), "the whole grid", font=f_tiny, fill=COL["faint"], anchor="rm")
 
     # wagon legend (badge 1)
-    wy = y0 + 68
+    wy = y0 + 66
     wx = x0 + 26
     badge(d, (wx + 10, wy), 1, f_badge)
-    text_left(d, (wx + 30, wy), "wagons — one colour = one trade's work package:", f_small, COL["ink"])
-    wx += 30 + d.textlength("wagons — one colour = one trade's work package:", font=f_small) / SS + 14
+    lead = "one colour = one trade's wagon:"
+    text_left(d, (wx + 30, wy), lead, f_small, COL["ink"])
+    wx += 30 + d.textlength(lead, font=f_small) / SS + 14
     for wid, wlab, wc in WAGONS:
-        rounded(d, (wx, wy - 10, wx + 20, wy + 10), 5, wc + (255,) if len(wc) == 3 else wc, None)
-        text_left(d, (wx + 26, wy), f"{wid} {wlab}", f_small, COL["muted"])
-        wx += 26 + d.textlength(f"{wid} {wlab}", font=f_small) / SS + 16
+        rounded(d, (wx, wy - 9, wx + 18, wy + 9), 5, wc, None)
+        text_left(d, (wx + 24, wy), f"{wid} {wlab}", f_small, COL["muted"])
+        wx += 24 + d.textlength(f"{wid} {wlab}", font=f_small) / SS + 16
 
     # grid geometry
-    gx, gy = x0 + 128, y0 + 132
+    gx, gy = x0 + 128, y0 + 130
     cw, ch, cgap = 108, 56, 8
     cols = 5
 
     # column headers
     for c in range(cols):
         cxm = gx + c * (cw + cgap) + cw / 2
-        text_center(d, (cxm, gy - 26), f"T{c + 1}", fnt(True, 15), COL["muted"])
-    text_left(d, (gx - 4, gy - 48), "takts →  (slot · one beat = taktDuration)", f_tiny, COL["faint"])
+        text_center(d, (cxm, gy - 22), f"T{c + 1}", fnt(True, 15), COL["muted"])
 
     # rows
     for r, zname in enumerate(ZONES1):
         rym = gy + r * (ch + cgap) + ch / 2
         if r == 1:
-            badge(d, (x0 + 40, rym), 2, f_badge)
+            badge(d, (x0 + 38, rym), 2, f_badge)
         d.text((sc(x0 + 116), sc(rym)), zname, font=fnt(True, 15), fill=COL["ink"], anchor="rm")
         for c in range(cols):
             cx0 = gx + c * (cw + cgap)
@@ -534,8 +538,7 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
                 rounded(d, cell, 8, (247, 247, 250), COL["grid_line"], 1.2)
             elif content == "buf":
                 rounded(d, cell, 8, (243, 244, 247), COL["buffer"], 1.4)
-                hold = d._image  # clip hatch inside cell: draw short diagonals
-                hatch(d, (cell[0] + 3, cell[1] + 3, cell[2] - 3, cell[3] - 3), (200, 203, 214), 10, 1.4)
+                hatch(d, (cell[0] + 3, cell[1] + 3, cell[2] - 3, cell[3] - 3), (204, 207, 218), 10, 1.4)
                 text_center(d, (cx0 + cw / 2, rym), "buffer", f_gridsub, COL["buffer"])
             elif content == "ms":
                 rounded(d, cell, 8, (250, 236, 233), COL["milestone"], 1.4)
@@ -555,18 +558,13 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
                 if (r, c) == (0, 0):
                     badge(d, (cell[0] + 2, cell[1] + 2), 3, f_badge, r=10)
 
-    # badge 4: the whole grid = the plan
-    gx1 = gx + cols * (cw + cgap) - cgap
-    badge(d, (gx1 - 6, gy - 26), 4, f_badge, r=10)
-    text_left(d, (gx1 - 88, gy - 48), "the whole grid", f_tiny, COL["faint"])
-
     # reading arrows over the grid
     rowy = lambda r: gy + r * (ch + cgap) + ch / 2
     colx = lambda c: gx + c * (cw + cgap)
     # Reading A: convoy in zone A5:1 — from 6.1@T2 to 7.1@T3
     ay = rowy(0)
-    line(d, (colx(1) + cw + 1, ay), (colx(2) - 2, ay), COL["readingA"], 3.4)
-    arrowhead(d, (colx(2) - 2, ay), (colx(1) + cw, ay), COL["readingA"], 11)
+    line(d, (colx(1) + cw + 1, ay), (colx(2) - 3, ay), COL["readingA"], 3.4)
+    arrowhead(d, (colx(2) - 3, ay), (colx(1) + cw, ay), COL["readingA"], 11)
     # Reading B: 5.1 moves A5:1@T1 -> B5:1@T2
     bstart = (colx(0) + cw - 6, rowy(0) + ch / 2 - 4)
     bend = (colx(1) + 8, rowy(1) - ch / 2 + 4)
@@ -574,7 +572,7 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
     arrowhead(d, bend, bstart, COL["readingB"], 11)
 
     # legends under the grid
-    ly = gy + 3 * (ch + cgap) + 26
+    ly = gy + 3 * (ch + cgap) + 22
     lx = x0 + 26
     line(d, (lx, ly), (lx + 30, ly), COL["readingA"], 3.4)
     arrowhead(d, (lx + 32, ly), (lx, ly), COL["readingA"], 10)
@@ -586,8 +584,6 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
     ly += 30
     text_left(d, (lx, ly), "planned dates DERIVE:  planStart + (slot − 1) × taktDuration — the rhythm is the calendar",
               f_tiny, COL["muted"])
-    ly += 24
-    text_left(d, (lx, ly), "①–⑤ … each part of this grid is a class below", f_tiny, COL["faint"])
 
     # ========================================================================
     # PANEL 2 — the reuse stack
@@ -597,14 +593,14 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
 
     n_terms = len(classes) + len(objprops) + len(dataprops)
     slabs = [
-        ("takt", "takt:", f"only the gap — wagon types · rhythm · plan-graph", f"{n_terms} terms", True),
+        ("takt", "takt:", "wagon types · the rhythm · the plan-graph", f"{n_terms} terms", True),
         ("dtc", "dtc:", "DTC v2 — process · zones · crews · schedule", "⊑", False),
         ("bot", "bot:", "BOT — spatial topology: adjacency · containment", "⊑", False),
-        ("top", "top:", "TopologicPy v0.2 — geometry · TGraph graphs", "⊑  ~", False),
+        ("top", "top:", "TopologicPy v0.2 — geometry · TGraph graphs", "⊑ ~", False),
         ("ifc", "ifc:", "IFC4 ifcOWL — industry interchange anchor", "≈", False),
     ]
-    sy = y0 + 62
-    sh, sgap = 60, 12
+    sy = y0 + 58
+    sh, sgap = 56, 10
     for vocab, prefix, role, glyph, hero in slabs:
         c = VOCAB[vocab]
         box = (x0 + 26, sy, x1 - 26, sy + sh)
@@ -612,14 +608,15 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
         d.rounded_rectangle([sc(box[0]), sc(box[1]), sc(box[0] + 9), sc(box[3])], radius=sc(4), fill=c["edge"])
         text_left(d, (box[0] + 24, sy + sh / 2), prefix, f_slab, c["text"])
         text_left(d, (box[0] + 92, sy + sh / 2), role, f_small, COL["ink"] if hero else COL["muted"])
-        d.text((sc(box[2] - 18), sc(sy + sh / 2)), glyph, font=fnt(True, 17), fill=c["text"], anchor="rm")
+        d.text((sc(box[2] - 18), sc(sy + sh / 2)), glyph,
+               font=fnt(True, 15 if hero else 17), fill=c["text"], anchor="rm")
         sy += sh + sgap
         if hero:
             # connective caption between the takt slab and the reused stack
-            text_center(d, ((x0 + x1) / 2, sy - 2), "⌄   specializes by reference — no owl:imports   ⌄",
+            text_center(d, ((x0 + x1) / 2, sy - 1), "⌄   specializes by reference — no owl:imports   ⌄",
                         f_tiny, COL["faint"])
             sy += 16
-    text_left(d, (x0 + 26, sy + 8), "these colours tag every alignment pill below · pinned in ontology/alignments.lock.json",
+    text_left(d, (x0 + 26, sy + 6), "these colours tag the pills below · pinned in alignments.lock.json",
               f_tiny, COL["faint"])
 
     # ========================================================================
@@ -631,7 +628,7 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
               f"{len(dataprops)} values  ·  every term cited to the research corpus", f_ptitle, COL["panel_title"])
 
     # card shadows
-    cshadow = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    cshadow = Image.new("RGBA", img.size, COL["shadow"] + (0,))
     csd = ImageDraw.Draw(cshadow)
     for n in NODES.values():
         bx0, by0, bx1, by1 = n["box"]
@@ -719,11 +716,20 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
 
     # ---- footer -----------------------------------------------------------
     text_center(d, (W / 2, H - 66),
-                "the payoff: one traversal  task → actsOn → element → quantity  — a spreadsheet cannot do that",
-                fnt(True, 16), COL["title"])
-    text_center(d, (W / 2, H - 36),
+                "the payoff: one traversal   task → actsOn → element → quantity   — a spreadsheet cannot do that",
+                fnt(True, 16), COL["title"], halo=True)
+    text_center(d, (W / 2, H - 34),
                 "every term carries dcterms:source → research/ corpus  ·  machine-checked by scripts/validate.py (SHACL + CQ queries)",
-                f_tiny, COL["subtitle"])
+                f_tiny, COL["subtitle"], halo=True, pad=(9, 4), radius=10)
+
+    # Force the RGB of transparent pixels to a light neutral before downscaling:
+    # LANCZOS mixes the RGB of transparent neighbours into glyph/edge pixels, and
+    # the composites above reset those to black, which would fringe every glyph
+    # drawn outside the opaque panels.
+    a = img.getchannel("A")
+    neutral = Image.new("RGB", img.size, (246, 246, 250))
+    rgb = Image.composite(img.convert("RGB"), neutral, a)
+    img = Image.merge("RGBA", (*rgb.split(), a))
 
     return img.resize((W, H), Image.LANCZOS)
 
