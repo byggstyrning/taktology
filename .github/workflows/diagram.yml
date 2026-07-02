@@ -31,16 +31,45 @@ jobs:
         with:
           python-version: "3.13"
       - run: pip install -r scripts/requirements.txt
+      - name: Snapshot committed PNGs before regenerating
+        run: |
+          mkdir -p /tmp/committed-diagrams
+          cp docs/diagrams/*.png /tmp/committed-diagrams/
       - run: python scripts/generate_ontology_diagram.py
       - run: python scripts/generate_takt_scheme.py
       - name: Fail if a committed diagram / README is stale
         run: |
-          if ! git diff --quiet -- docs/diagrams README.md; then
-            echo "::error::A README diagram is out of date. Run:"
+          # Compare decoded pixels, not raw bytes: PNG compression differs
+          # across platforms/Pillow builds even for identical pixel data, so a
+          # byte-level diff is flaky between the Windows dev machine and this
+          # Linux runner.
+          stale=0
+          for f in docs/diagrams/*.png; do
+            name=$(basename "$f")
+            old="/tmp/committed-diagrams/$name"
+            if [ ! -f "$old" ]; then
+              echo "::error::$name is new/untracked - commit it."
+              stale=1
+              continue
+            fi
+            python -c "
+          from PIL import Image
+          import sys
+          a = Image.open('$old').convert('RGBA')
+          b = Image.open('$f').convert('RGBA')
+          sys.exit(0 if a.tobytes() == b.tobytes() else 1)
+          " || { echo "::error::$name pixels are out of date."; stale=1; }
+          done
+          if ! git diff --quiet -- README.md; then
+            echo "::error::README.md is out of date."
+            git --no-pager diff --stat -- README.md
+            stale=1
+          fi
+          if [ "$stale" -ne 0 ]; then
+            echo "::error::Regenerate with:"
             echo "::error::  python scripts/generate_ontology_diagram.py"
             echo "::error::  python scripts/generate_takt_scheme.py"
             echo "::error::and commit docs/diagrams/ + README.md."
-            git --no-pager diff --stat -- docs/diagrams README.md
             exit 1
           fi
           echo "Diagrams are in sync."
