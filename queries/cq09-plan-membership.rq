@@ -1,0 +1,24 @@
+# =============================================================================
+# CQ09 — Plan membership: which tasks belong to which takt plan?
+# -----------------------------------------------------------------------------
+# Membership is dtc:hasProcess (TaktGraph -> TaktTask), reused from DTC v2's
+# ConstructionSchedule rather than minted (ADR-15). This is the roll-up every
+# other CQ implicitly scopes to: one plan = one grid.
+#
+# Answered by: both examples.
+# Expected:    7 rows — "Takt-flowline demo plan" holds 2 tasks (5.1 @ B5:1,
+#              5.2 @ B5:1); "Train demo plan" holds 5 (5.1/6.1 in both zones
+#              + the buffer).
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?planLabel ?taskLabel
+WHERE {
+    ?plan a takt:TaktGraph ;
+          dtc:hasProcess ?task .
+    OPTIONAL { ?plan rdfs:label ?planLabel }
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+}
+ORDER BY ?planLabel ?taskLabel

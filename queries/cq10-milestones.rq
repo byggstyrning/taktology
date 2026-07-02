@@ -1,0 +1,25 @@
+# =============================================================================
+# CQ10 — Milestones: which cells of the plan are milestones?
+# -----------------------------------------------------------------------------
+# Milestone cells (takt:isMilestone true — e.g. 'Inflytt', 'Dem. bygghiss')
+# are flagged, not subclassed, mirroring IfcTask.IsMilestone, so every cell of
+# the grid stays one TaktTask. Zone and slot are OPTIONAL because a milestone
+# is not strictly 'one wagon in one zone for one takt'.
+#
+# Answered by: both examples (vacuously).
+# Expected:    0 rows — neither example contains a milestone cell; the
+#              flowline demo asserts isMilestone FALSE on its task, which must
+#              not match. The query is the reusable pattern for real plans.
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?taskLabel ?zoneLabel ?slot
+WHERE {
+    ?task a takt:TaktTask ;
+          takt:isMilestone true .
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+    OPTIONAL { ?task takt:performedIn/rdfs:label ?zoneLabel }
+    OPTIONAL { ?task takt:slot ?slot }
+}
+ORDER BY ?slot ?taskLabel

@@ -1,0 +1,24 @@
+# =============================================================================
+# CQ06 — Buffers: where are the capacity buffers, per zone?
+# -----------------------------------------------------------------------------
+# Capacity buffers (deliberately empty wagon slots) are what distinguish takt
+# from LBMS-style planning, so the vocabulary must surface them: every cell
+# with takt:isBuffer true, with its zone and slot. Cells asserting
+# isBuffer false (the flowline demo's task does) must NOT match.
+#
+# Answered by: examples/takt-train-demo.ttl
+# Expected:    1 row — "buffer @ B5:1" in zone B5:1 at slot 3.
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?zoneLabel ?taskLabel ?slot
+WHERE {
+    ?task a takt:TaktTask ;
+          takt:isBuffer true ;
+          takt:performedIn ?zone ;
+          takt:slot ?slot .
+    ?zone rdfs:label ?zoneLabel .
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+}
+ORDER BY ?zoneLabel ?slot

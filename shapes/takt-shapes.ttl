@@ -1,0 +1,189 @@
+# =============================================================================
+# takt-shapes.ttl — SHACL shapes for a valid takt plan
+# -----------------------------------------------------------------------------
+# SCOPE: these shapes validate PLAN DATA (A-Boxes such as examples/*.ttl — the
+# wagon-x-zone grid, its rhythm, its flow edges), NOT the T-Box in
+# ontology/takt.ttl. Vocabulary hygiene (label/comment/source coverage on
+# takt: terms) is a separate check in scripts/validate.py.
+#
+# Severity policy
+#   sh:Violation — the plan is structurally broken: a task without exactly one
+#                  zone or slot, a double-anchored plan, a typed-value error,
+#                  or a flow edge that contradicts its reading.
+#   sh:Warning   — legal but suspicious: unlabelled zones / wagon types / crews
+#                  (plans are read by humans), or a buffer cell that still
+#                  carries a wagon type (a capacity buffer is an EMPTY slot).
+#
+# Subproperty note: takt:hasSuccessorSameZone / takt:hasSuccessorSameWagon are
+# rdfs:subPropertyOf takt:hasSuccessor, so the generic hasSuccessor value check
+# only sees their edges when the validator applies RDFS inference with the
+# T-Box merged into the data graph. scripts/validate.py does exactly that
+# (pySHACL inference="rdfs"); the two reading-specific SPARQL constraints below
+# query their own predicates directly and need no inference.
+#
+# Validate:  python scripts/validate.py
+# =============================================================================
+
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+# -----------------------------------------------------------------------------
+<https://w3id.org/taktology/shapes> a owl:Ontology ;
+    rdfs:label "Taktology plan shapes"@en ;
+    rdfs:comment """SHACL shapes for takt plan A-Boxes (instances of the
+        taktology v0.5.0 core). Validates plan data, not the vocabulary."""@en ;
+    rdfs:seeAlso <https://w3id.org/taktology> ;
+    # Prefix declarations for the SPARQL-based constraints below.
+    sh:declare [ sh:prefix "takt" ; sh:namespace "https://w3id.org/taktology#"^^xsd:anyURI ] .
+
+# =============================================================================
+# takt:TaktTask — one cell of the plan grid
+# =============================================================================
+takt:TaktTaskShape a sh:NodeShape ;
+    sh:targetClass takt:TaktTask ;
+    sh:name "Takt task (grid cell)"@en ;
+    sh:property [
+        sh:path takt:performedIn ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class takt:TaktZone ;
+        sh:message "Every takt task sits in exactly one takt:TaktZone (takt:performedIn) — a cell has exactly one grid row."@en ;
+    ] , [
+        sh:path takt:slot ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 1 ;
+        sh:message "Every takt task occupies exactly one takt:slot — an xsd:integer >= 1 (the 1-based grid column)."@en ;
+    ] , [
+        sh:path takt:instantiates ;
+        sh:maxCount 1 ;
+        sh:class takt:WagonType ;
+        sh:message "A takt task instantiates at most one takt:WagonType (buffer and milestone cells may instantiate none)."@en ;
+    ] , [
+        sh:path takt:isMilestone ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+        sh:message "takt:isMilestone is a single xsd:boolean flag."@en ;
+    ] , [
+        sh:path takt:isBuffer ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:boolean ;
+        sh:message "takt:isBuffer is a single xsd:boolean flag."@en ;
+    ] , [
+        sh:path takt:hasSuccessor ;
+        sh:class takt:TaktTask ;
+        sh:message "takt:hasSuccessor (the train edge) links takt tasks to takt tasks."@en ;
+    ] .
+
+# --- Reading A (location flow): same-zone successors must share their zone ---
+takt:SameZoneFlowShape a sh:NodeShape ;
+    sh:targetClass takt:TaktTask ;
+    sh:name "Reading A — location flow stays in one zone"@en ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "hasSuccessorSameZone contradiction: the task and its successor do not share a takt:performedIn zone (Reading A is the convoy through ONE zone)."@en ;
+        sh:prefixes <https://w3id.org/taktology/shapes> ;
+        sh:select """
+            SELECT $this ?value
+            WHERE {
+                $this takt:hasSuccessorSameZone ?value .
+                FILTER NOT EXISTS {
+                    $this  takt:performedIn ?zone .
+                    ?value takt:performedIn ?zone .
+                }
+            }
+        """ ;
+    ] .
+
+# --- Reading B (trade flow): same-wagon successors must share their wagon ----
+takt:SameWagonFlowShape a sh:NodeShape ;
+    sh:targetClass takt:TaktTask ;
+    sh:name "Reading B — trade flow stays one wagon"@en ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "hasSuccessorSameWagon contradiction: the task and its successor do not share a takt:instantiates wagon type (Reading B is ONE wagon's run across zones)."@en ;
+        sh:prefixes <https://w3id.org/taktology/shapes> ;
+        sh:select """
+            SELECT $this ?value
+            WHERE {
+                $this takt:hasSuccessorSameWagon ?value .
+                FILTER NOT EXISTS {
+                    $this  takt:instantiates ?wagon .
+                    ?value takt:instantiates ?wagon .
+                }
+            }
+        """ ;
+    ] .
+
+# --- A buffer is a deliberately EMPTY wagon slot ------------------------------
+takt:BufferCellShape a sh:NodeShape ;
+    sh:targetClass takt:TaktTask ;
+    sh:name "Buffer cells stay empty"@en ;
+    sh:severity sh:Warning ;
+    sh:sparql [
+        a sh:SPARQLConstraint ;
+        sh:message "Buffer cell carries a wagon type: a capacity buffer (takt:isBuffer true) is a deliberately empty slot and typically instantiates nothing."@en ;
+        sh:prefixes <https://w3id.org/taktology/shapes> ;
+        sh:select """
+            SELECT $this ?value
+            WHERE {
+                $this takt:isBuffer true ;
+                      takt:instantiates ?value .
+            }
+        """ ;
+    ] .
+
+# =============================================================================
+# takt:TaktGraph — the plan itself (beat + calendar anchor asserted ONCE)
+# =============================================================================
+takt:TaktGraphShape a sh:NodeShape ;
+    sh:targetClass takt:TaktGraph ;
+    sh:name "Takt graph (the plan)"@en ;
+    sh:property [
+        sh:path takt:taktDuration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:duration ;
+        sh:message "A takt graph carries at most one plan-wide beat (takt:taktDuration, xsd:duration — write P7D, never the ISO-8601-only P1W)."@en ;
+    ] , [
+        sh:path takt:planStart ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:date ;
+        sh:message "A takt graph carries at most one calendar anchor (takt:planStart, xsd:date) — one date places the whole grid."@en ;
+    ] .
+
+# =============================================================================
+# Labelling warnings — plans are read by humans
+# =============================================================================
+takt:TaktZoneShape a sh:NodeShape ;
+    sh:targetClass takt:TaktZone ;
+    sh:name "Takt zone"@en ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Takt zone has no rdfs:label — name the zone (the plan's grid row header)."@en ;
+    ] .
+
+takt:WagonTypeShape a sh:NodeShape ;
+    sh:targetClass takt:WagonType ;
+    sh:name "Wagon type"@en ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Wagon type has no rdfs:label — name the work package (the activity-structure row)."@en ;
+    ] .
+
+takt:CrewShape a sh:NodeShape ;
+    sh:targetClass takt:Crew ;
+    sh:name "Crew"@en ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Crew has no rdfs:label — give it the crew code used on the plan."@en ;
+    ] .

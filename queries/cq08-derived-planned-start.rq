@@ -1,0 +1,47 @@
+# =============================================================================
+# CQ08 — Derived planned start: on what calendar date does each task begin?
+# -----------------------------------------------------------------------------
+# Planned dates are NOT asserted per task — they DERIVE from the plan (ADR-14):
+#
+#     task start = takt:planStart + (takt:slot - 1) x takt:taktDuration
+#
+# (dtc:startTime/endTime are as-performed observations — never planned dates.)
+#
+# Engine note: SPARQL/XPath date arithmetic is defined over xsd:dayTimeDuration,
+# and rdflib (7.6) evaluates xsd:date + xsd:dayTimeDuration but returns unbound
+# for a computed xsd:duration. So the day count is extracted from the asserted
+# takt:taktDuration (day-valued by ontology policy: P7D, never P1W — see
+# takt:taktDuration's comment), scaled by (slot - 1), and rebuilt as an
+# xsd:dayTimeDuration for the addition. On an engine without duration
+# arithmetic, drop the last BIND and derive ?derivedStart downstream from
+# ?planStart + ?offsetDays using the formula above.
+#
+# Answered by: both examples.
+# Expected:    7 rows — flowline plan (planStart 2024-01-01, P7D): slot 4 ->
+#              2024-01-22, slot 5 -> 2024-01-29; train plan (planStart
+#              2024-03-04, P7D): slot 1 -> 2024-03-04, slot 2 -> 2024-03-11
+#              (two tasks), slot 3 -> 2024-03-18 (two tasks).
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?taskLabel ?slot ?planStart ?taktDuration ?offsetDays ?derivedStart
+WHERE {
+    ?plan a takt:TaktGraph ;
+          takt:planStart    ?planStart ;
+          takt:taktDuration ?taktDuration ;
+          dtc:hasProcess    ?task .
+    ?task takt:slot ?slot .
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+
+    # days per takt, from the (day-valued) duration literal, e.g. "P7D" -> 7
+    BIND(xsd:integer(REPLACE(STR(?taktDuration), "^P([0-9]+)D$", "$1")) AS ?taktDays)
+
+    # the derivation: (slot - 1) takts after the plan anchor
+    BIND(?taktDays * (?slot - 1) AS ?offsetDays)
+    BIND(?planStart + STRDT(CONCAT("P", STR(?offsetDays), "D"), xsd:dayTimeDuration)
+         AS ?derivedStart)
+}
+ORDER BY ?planStart ?slot ?taskLabel

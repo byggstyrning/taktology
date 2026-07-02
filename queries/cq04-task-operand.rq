@@ -1,0 +1,25 @@
+# =============================================================================
+# CQ04 — Operand: which building element(s) does a task act on?
+# -----------------------------------------------------------------------------
+# takt:actsOn is the OPERAND — the trade-specific subset of the zone's
+# contents, distinct from the zone the task merely sits in (takt:performedIn).
+# Anything computed per trade (work density, duration checks) reads this edge,
+# not the zone total.
+#
+# Answered by: both examples.
+# Expected:    5 rows — flowline demo: "5.1 @ B5:1" acts on "Gypsum wall set,
+#              B5:1" (NOT the slab sharing its zone); train demo: 5.1 tasks act
+#              on gypsum walls, 6.1 tasks on floor slabs, in B5:1 and C5. The
+#              buffer cell acts on nothing and returns no row.
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?taskLabel ?elementLabel
+WHERE {
+    ?task a takt:TaktTask ;
+          takt:actsOn ?element .
+    OPTIONAL { ?task    rdfs:label ?taskLabel }
+    OPTIONAL { ?element rdfs:label ?elementLabel }
+}
+ORDER BY ?taskLabel ?elementLabel

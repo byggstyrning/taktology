@@ -1,0 +1,25 @@
+# =============================================================================
+# CQ07 — Crew load: how many tasks does each crew carry in each slot?
+# -----------------------------------------------------------------------------
+# A crew can only be in one zone per takt: any (crew, slot) count above 1 is a
+# double-booking the planner must resolve. Group tasks by crew and slot and
+# count. (Grouping is on the crew IRI — the two examples each define their own
+# crew labelled "SUB-03", which correctly stay separate rows.)
+#
+# Answered by: both examples.
+# Expected:    5 rows, every load = 1 (nobody double-booked) —
+#              flowline SUB-03: slot 4; train SUB-03: slots 1 and 2;
+#              train SUB-07: slots 2 and 3.
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?crewLabel ?slot (COUNT(?task) AS ?load)
+WHERE {
+    ?task a takt:TaktTask ;
+          takt:performedBy ?crew ;
+          takt:slot ?slot .
+    ?crew rdfs:label ?crewLabel .
+}
+GROUP BY ?crew ?crewLabel ?slot
+ORDER BY ?crewLabel ?slot

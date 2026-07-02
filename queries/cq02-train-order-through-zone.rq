@@ -1,0 +1,40 @@
+# =============================================================================
+# CQ02 — Train order through a zone: in what order do wagons pull into zone Z?
+# -----------------------------------------------------------------------------
+# Reading A (location flow): the cross-trade convoy through one station. For
+# each zone, find the HEAD of its convoy (a task with no same-zone predecessor)
+# and walk the successor chain with a property path. The path unions
+# takt:hasSuccessorSameZone with plain takt:hasSuccessor as a FALLBACK for data
+# that only asserts the generic edge (rdflib does no RDFS inference, so the
+# subproperty is not subsumed automatically); the same-zone constraint on both
+# ends keeps the generic edge from leaking across zones.
+#
+# Answered by: examples/takt-train-demo.ttl (reading-specific edges)
+#              and examples/takt-flowline-demo-b5-1.ttl (generic-edge fallback)
+# Expected:    7 rows — train-demo B5:1: 5.1 (slot 1) -> 6.1 (2) -> buffer (3);
+#              train-demo C5: 5.1 (2) -> 6.1 (3);
+#              flowline-demo B5:1: 5.1 (4) -> 5.2 (5).
+#              (Two distinct zones carry the label "B5:1 (PLAN 5)" — one per
+#              example graph — so that label shows five rows in total.)
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?zoneLabel ?slot ?taskLabel
+WHERE {
+    # the head of the convoy: no same-zone predecessor
+    ?head takt:performedIn ?zone .
+    FILTER NOT EXISTS {
+        ?prev (takt:hasSuccessorSameZone|takt:hasSuccessor) ?head ;
+              takt:performedIn ?zone .
+    }
+
+    # walk the chain (zero or more hops), staying inside the zone
+    ?head (takt:hasSuccessorSameZone|takt:hasSuccessor)* ?task .
+    ?task takt:performedIn ?zone ;
+          takt:slot ?slot .
+
+    ?zone rdfs:label ?zoneLabel .
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+}
+ORDER BY ?zoneLabel ?slot ?taskLabel

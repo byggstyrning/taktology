@@ -1,0 +1,18 @@
+# https://w3id.org/taktology — taktology ontology redirects
+# Vocabulary source: https://github.com/byggstyrning/taktology
+Options +FollowSymLinks
+RewriteEngine on
+
+# 1. Version-IRI snapshots: /taktology/X.Y.Z -> the git-tagged takt.ttl
+RewriteRule ^([0-9]+\.[0-9]+\.[0-9]+)/?$ https://raw.githubusercontent.com/byggstyrning/taktology/v$1/ontology/takt.ttl [R=302,L]
+
+# 2. JSON-LD context for developers: /taktology/context
+RewriteRule ^context/?$ https://raw.githubusercontent.com/byggstyrning/taktology/main/contexts/takt.context.jsonld [R=302,L]
+
+# 3. Turtle for machines (the namespace IRI and every takt: term — hash namespace)
+RewriteCond %{HTTP_ACCEPT} text/turtle [OR]
+RewriteCond %{HTTP_ACCEPT} application/x-turtle
+RewriteRule ^$ https://raw.githubusercontent.com/byggstyrning/taktology/main/ontology/takt.ttl [R=302,L]
+
+# 4. Everything else (browsers): human-readable documentation
+RewriteRule ^ https://github.com/byggstyrning/taktology [R=302,L]

@@ -1,0 +1,34 @@
+# =============================================================================
+# CQ05 — Flow-adjacency check: do same-wagon successors sit in ADJACENT zones?
+# -----------------------------------------------------------------------------
+# The topological soundness check ADR-8 re-parented TaktZone under bot:Zone
+# for: a wagon should flow between zones that share a boundary (or the plan
+# should say why not). Returns the VIOLATING pairs — same-wagon successor
+# steps whose zones are not bot:adjacentZone in either direction. An empty
+# result means the plan's trade flow respects the topology.
+#
+# NOTE bot:adjacentZone is not declared symmetric in the data (the train demo
+# asserts it one direction only, B5:1 -> C5), so BOTH directions are checked
+# explicitly rather than assuming an inference engine.
+#
+# Answered by: examples/takt-train-demo.ttl
+# Expected:    0 rows (both wagon hops run B5:1 -> C5, which are adjacent).
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX bot:  <https://w3id.org/bot#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?fromTask ?toTask ?fromZoneLabel ?toZoneLabel
+WHERE {
+    ?fromTask takt:hasSuccessorSameWagon ?toTask .
+    ?fromTask takt:performedIn ?fromZone .
+    ?toTask   takt:performedIn ?toZone .
+
+    FILTER (?fromZone != ?toZone)                        # staying put is not a violation
+    FILTER NOT EXISTS { ?fromZone bot:adjacentZone ?toZone }
+    FILTER NOT EXISTS { ?toZone   bot:adjacentZone ?fromZone }   # asserted one-way; check symmetrically
+
+    OPTIONAL { ?fromZone rdfs:label ?fromZoneLabel }
+    OPTIONAL { ?toZone   rdfs:label ?toZoneLabel }
+}
+ORDER BY ?fromZoneLabel ?toZoneLabel

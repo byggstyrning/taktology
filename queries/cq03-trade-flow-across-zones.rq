@@ -1,0 +1,26 @@
+# =============================================================================
+# CQ03 — Trade flow: where does one wagon (trade) go next, across zones?
+# -----------------------------------------------------------------------------
+# Reading B (trade flow): one wagon tracked across the building. A property
+# path over takt:hasSuccessorSameWagon gives every downstream stop of the run
+# (with a two-zone run, each wagon yields its single hop).
+#
+# Answered by: examples/takt-train-demo.ttl
+#              (the flowline demo has no same-wagon edges — single zone)
+# Expected:    2 rows — wagon "Drywall — first-side boarding": B5:1 -> C5
+#              (slots 1 -> 2); wagon "Screed": B5:1 -> C5 (slots 2 -> 3).
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?wagonLabel ?fromZoneLabel ?fromSlot ?toZoneLabel ?toSlot
+WHERE {
+    ?from takt:hasSuccessorSameWagon+ ?to .
+
+    ?from takt:instantiates/rdfs:label ?wagonLabel ;
+          takt:performedIn/rdfs:label  ?fromZoneLabel ;
+          takt:slot ?fromSlot .
+    ?to   takt:performedIn/rdfs:label  ?toZoneLabel ;
+          takt:slot ?toSlot .
+}
+ORDER BY ?wagonLabel ?fromSlot ?toSlot

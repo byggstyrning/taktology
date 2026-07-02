@@ -1,0 +1,28 @@
+# =============================================================================
+# CQ01 — Zone occupancy: which wagon / task occupies zone Z at slot t?
+# -----------------------------------------------------------------------------
+# The takt planner's bread-and-butter lookup: point at a cell of the plan grid
+# (zone row, slot column) and get the wagon standing in it.
+#
+# Answered by: examples/takt-train-demo.ttl
+#              (pinned below to zone "B5:1 (PLAN 5)" at slot 2)
+# Expected:    exactly 1 row — task "6.1 @ B5:1", wagon "Screed".
+#              The flowline demo's B5:1 zone contributes nothing (its tasks sit
+#              in slots 4 and 5); edit the VALUES row to probe any other cell.
+# =============================================================================
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?task ?taskLabel ?wagonLabel
+WHERE {
+    VALUES (?zoneLabel ?slot) { ("B5:1 (PLAN 5)" 2) }   # <- the cell being probed
+
+    ?zone a takt:TaktZone ;
+          rdfs:label ?zoneLabel .
+    ?task a takt:TaktTask ;
+          takt:performedIn ?zone ;
+          takt:slot ?slot .
+    OPTIONAL { ?task rdfs:label ?taskLabel }
+    OPTIONAL { ?task takt:instantiates/rdfs:label ?wagonLabel }
+}
+ORDER BY ?taskLabel

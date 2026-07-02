@@ -1,0 +1,41 @@
+{
+  "@context": {
+    "takt": "https://w3id.org/taktology#",
+    "dtc": "https://dtc-ontology.cms.ed.tum.de/ontology/v2#",
+    "bot": "https://w3id.org/bot#",
+    "top": "http://w3id.org/topologicpy#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+
+    "id": "@id",
+    "type": "@type",
+    "label": "rdfs:label",
+
+    "TaktZone": "takt:TaktZone",
+    "WagonType": "takt:WagonType",
+    "TaktTask": "takt:TaktTask",
+    "Crew": "takt:Crew",
+    "TaktGraph": "takt:TaktGraph",
+
+    "instantiates": { "@id": "takt:instantiates", "@type": "@id" },
+    "performedIn": { "@id": "takt:performedIn", "@type": "@id" },
+    "actsOn": { "@id": "takt:actsOn", "@type": "@id" },
+    "performedBy": { "@id": "takt:performedBy", "@type": "@id" },
+    "hasSuccessor": { "@id": "takt:hasSuccessor", "@type": "@id" },
+    "hasSuccessorSameZone": { "@id": "takt:hasSuccessorSameZone", "@type": "@id" },
+    "hasSuccessorSameWagon": { "@id": "takt:hasSuccessorSameWagon", "@type": "@id" },
+    "partOfProcess": { "@id": "takt:partOfProcess", "@type": "@id" },
+
+    "taktDuration": { "@id": "takt:taktDuration", "@type": "xsd:duration" },
+    "slot": { "@id": "takt:slot", "@type": "xsd:integer" },
+    "planStart": { "@id": "takt:planStart", "@type": "xsd:date" },
+    "isMilestone": { "@id": "takt:isMilestone", "@type": "xsd:boolean" },
+    "isBuffer": { "@id": "takt:isBuffer", "@type": "xsd:boolean" },
+    "trade": { "@id": "takt:trade", "@type": "xsd:string" },
+
+    "hasProcess": { "@id": "dtc:hasProcess", "@type": "@id" },
+    "containsElement": { "@id": "bot:containsElement", "@type": "@id" },
+    "adjacentZone": { "@id": "bot:adjacentZone", "@type": "@id" },
+    "containsZone": { "@id": "bot:containsZone", "@type": "@id" }
+  }
+}

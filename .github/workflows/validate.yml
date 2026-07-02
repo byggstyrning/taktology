@@ -1,0 +1,39 @@
+name: validate
+
+# The semantic gate for the ontology and its plan data. Parses the T-Box and
+# every example, checks A-Box/T-Box term consistency and T-Box hygiene,
+# SHACL-validates the examples against shapes/takt-shapes.ttl (after
+# self-testing the shapes on a seeded broken plan) and runs the competency
+# queries. Reproduce a failure locally with:
+#   python scripts/validate.py
+# (Upstream drift checking is `--online` only and deliberately NOT run in CI —
+# the gate must stay deterministic; see ontology/alignments.lock.json.)
+on:
+  push:
+    paths:
+      - "ontology/**"
+      - "examples/**"
+      - "shapes/**"
+      - "queries/**"
+      - "scripts/validate.py"
+      - "scripts/requirements.txt"
+      - ".github/workflows/validate.yml"
+  pull_request:
+    paths:
+      - "ontology/**"
+      - "examples/**"
+      - "shapes/**"
+      - "queries/**"
+      - "scripts/validate.py"
+      - "scripts/requirements.txt"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - run: pip install -r scripts/requirements.txt
+      - run: python scripts/validate.py

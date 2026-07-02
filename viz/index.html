@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Taktology Visualizer — plan · graph · building</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- =========================================================================
+  Taktology Visualizer — three application layers over ONE RDF graph:
+    1. the takt plan grid  (what a takt-planning app shows the planner)
+    2. the knowledge graph (what the ontology actually is)
+    3. the 3D building     (an anonymized 3-storey building — structural shell +
+                            architectural + MEP fit-out — that BUILDS UP takt by
+                            takt as you scrub the train through the zones)
+  Data: examples/takt-building-demo.ttl (fetched when served; an embedded
+  snapshot keeps file:// double-click working). Geometry is a side-table keyed
+  by the same IRIs the generator emits — the ontology carries semantics, the
+  viz carries coordinates (in production TopologicPy's TGraph supplies both;
+  docs/05-tgraph-pairing.md). Regenerate data: scripts/generate_building_demo.py
+  then scripts/embed_viz_data.py.
+  Serve:  python -m http.server  (repo root)  ->  http://localhost:8000/viz/
+============================================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/n3@1.17.4/browser/n3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<style>
+  :root {
+    --bg:#14171c; --panel:#1b2027; --panel2:#20262f; --line:#2a323d;
+    --text:#d7dde6; --muted:#8b96a5; --accent:#5aa2e8;
+    --buffer:#6b7280; --milestone:#c0392b; --zone:#3fa7a0;
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body {
+    background:var(--bg); color:var(--text);
+    font:13px/1.45 "Segoe UI", system-ui, sans-serif;
+    display:grid; grid-template-rows:auto auto 1fr; gap:8px; padding:8px;
+  }
+  h1 { font-size:15px; margin:0; font-weight:600; letter-spacing:.02em; }
+  h1 small { color:var(--muted); font-weight:400; }
+  header {
+    display:flex; align-items:center; gap:16px;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:8px 14px;
+  }
+  header .spacer { flex:1; }
+  header .slotinfo { color:var(--accent); font-weight:600; min-width:280px; text-align:right; }
+  button {
+    background:var(--panel2); color:var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:4px 12px; cursor:pointer; font:inherit;
+  }
+  button:hover { border-color:var(--accent); }
+  input[type=range] { width:280px; accent-color:var(--accent); }
+  label.toggle { color:var(--muted); user-select:none; cursor:pointer; margin-right:10px; white-space:nowrap; font-size:12px; }
+  label.toggle input { accent-color:var(--accent); vertical-align:-2px; }
+
+  /* ---- takt plan grid (the planner layer) ---- */
+  #gridPanel {
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:10px 14px; overflow-x:auto; max-height:230px; overflow-y:auto;
+  }
+  .paneltitle {
+    color:var(--muted); text-transform:uppercase; font-size:10.5px;
+    letter-spacing:.12em; margin-bottom:8px;
+  }
+  table.takt { border-collapse:separate; border-spacing:4px; }
+  table.takt th {
+    font-weight:600; color:var(--muted); font-size:11px; padding:2px 6px;
+    text-align:center; border-radius:4px; position:sticky; top:0; background:var(--panel);
+  }
+  table.takt th.cur { color:#fff; background:rgba(90,162,232,.20); }
+  table.takt th.zone { text-align:left; color:var(--text); min-width:96px; left:0; z-index:1; }
+  table.takt td {
+    background:var(--panel2); border:1px solid var(--line); border-radius:6px;
+    min-width:104px; height:38px; padding:0; vertical-align:middle;
+  }
+  table.takt td.cur { outline:1px solid rgba(90,162,232,.45); }
+  .chip {
+    display:flex; flex-direction:column; justify-content:center; height:100%;
+    border-radius:5px; padding:2px 8px; cursor:pointer;
+    border-left:5px solid transparent; transition:box-shadow .1s; overflow:hidden;
+  }
+  .chip b { font-size:11.5px; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+  .chip span { font-size:10px; opacity:.8; }
+  .chip.sel, .chip:hover { box-shadow:0 0 0 2px var(--accent) inset; }
+  .chip.buffer {
+    background:repeating-linear-gradient(45deg,#242a33 0 6px,#2c333e 6px 12px);
+    color:var(--muted); border-left-color:var(--buffer);
+  }
+  .chip.milestone { background:#33201e; border-left-color:var(--milestone); color:#e8b4ab; }
+
+  /* ---- main row: graph + 3D + inspector ---- */
+  #main { display:grid; grid-template-columns:1fr 1.2fr 300px; gap:8px; min-height:0; }
+  .panel {
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:10px 12px; display:flex; flex-direction:column; min-height:0; min-width:0;
+  }
+  .panel .body { flex:1; min-height:0; position:relative; }
+  #graphSvg, #threeMount { position:absolute; inset:0; width:100%; height:100%; border-radius:6px; }
+  #threeMount { overflow:hidden; background:#0e1116; }
+  .panelbar { display:flex; align-items:center; flex-wrap:wrap; gap:2px 0; }
+  .panelbar .paneltitle { margin:0 auto 0 0; }
+
+  /* ---- graph ---- */
+  #graphSvg { background:#0e1116; cursor:grab; }
+  .gnode { cursor:pointer; }
+  .gnode text { fill:var(--text); font-size:9px; pointer-events:none; }
+  .gnode.dim { opacity:.2; }
+  .glink { fill:none; }
+  .glink.dim { opacity:.08; }
+
+  /* ---- inspector / legend ---- */
+  #side { overflow-y:auto; }
+  .legend { margin-bottom:12px; }
+  .legend .row { display:flex; align-items:center; gap:8px; margin:3px 0; color:var(--muted); font-size:12px; }
+  .sw { width:14px; height:14px; border-radius:3px; flex:none; }
+  .sw.line { height:3px; border-radius:2px; }
+  #inspector .iri { color:var(--muted); font-size:10.5px; word-break:break-all; margin-bottom:6px; }
+  #inspector h2 { font-size:14px; margin:2px 0 2px; }
+  #inspector .badge {
+    display:inline-block; font-size:10px; padding:1px 7px; border-radius:8px;
+    background:var(--panel2); border:1px solid var(--line); color:var(--muted); margin-bottom:8px;
+  }
+  #inspector table { width:100%; border-collapse:collapse; font-size:12px; }
+  #inspector td { padding:3px 4px; border-top:1px solid var(--line); vertical-align:top; }
+  #inspector td.p { color:var(--muted); white-space:nowrap; }
+  #inspector a { color:var(--accent); text-decoration:none; cursor:pointer; }
+  #inspector .rev { color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:.1em; margin-top:12px; }
+  .hint { color:var(--muted); font-style:italic; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Taktology <small>visualizer — one graph, three application layers</small></h1>
+  <div class="spacer"></div>
+  <button id="playBtn" title="Play the train">▶</button>
+  <input type="range" id="slotSlider" min="1" max="11" value="1" step="1">
+  <div class="slotinfo" id="slotInfo">—</div>
+</header>
+
+<section id="gridPanel">
+  <div class="paneltitle">Takt plan — wagons × zones × takts (click a cell; scrub to move the train)</div>
+  <table class="takt" id="taktTable"></table>
+</section>
+
+<div id="main">
+  <section class="panel">
+    <div class="panelbar">
+      <div class="paneltitle">Knowledge graph — takt.ttl semantics</div>
+      <label class="toggle"><input type="checkbox" id="tglElements"> elements</label>
+      <label class="toggle"><input type="checkbox" id="tglCrews"> crews</label>
+    </div>
+    <div class="body"><svg id="graphSvg"></svg></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelbar">
+      <div class="paneltitle">Building — 3 storeys, fit-out builds up per takt</div>
+      <label class="toggle"><input type="checkbox" id="tglStruct" checked> structural</label>
+      <label class="toggle"><input type="checkbox" id="tglArch" checked> architectural</label>
+      <label class="toggle"><input type="checkbox" id="tglMep" checked> MEP</label>
+    </div>
+    <div class="body"><div id="threeMount"></div></div>
+  </section>
+
+  <section class="panel" id="side">
+    <div class="legend" id="legend"></div>
+    <div class="paneltitle">Inspector</div>
+    <div id="inspector"><div class="hint">Click a cell, node, zone or element.</div></div>
+  </section>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ========================================================================
+   0. Namespaces, palette
+======================================================================== */
+const NS = {
+  takt: 'https://w3id.org/taktology#',
+  dtc:  'https://dtc-ontology.cms.ed.tum.de/ontology/v2#',
+  bot:  'https://w3id.org/bot#',
+  rdf:  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  xsd:  'http://www.w3.org/2001/XMLSchema#',
+  ex:   'https://w3id.org/taktology/examples/building#',
+};
+const T = (l) => NS.takt + l, B = (l) => NS.bot + l;
+const RDF_TYPE = NS.rdf + 'type', LABEL = NS.rdfs + 'label';
+const qname = (iri) => {
+  for (const [p, u] of Object.entries(NS)) if (iri.startsWith(u)) return p + ':' + iri.slice(u.length);
+  return iri;
+};
+const WAGON_PALETTE = ['#4E8FD9', '#E2A93B', '#5CA86B', '#B06BC8', '#5BB8B0', '#D96A6A'];
+
+/* ========================================================================
+   1. Building spec — MIRRORS scripts/generate_building_demo.py
+   (footprint metres; zone split at x=15; core central; 3 storeys of 3.6 m).
+   Operand IRIs follow ex:{key}_L{s}_{W|E}; this is how geometry attaches to
+   the RDF elements without a shared coordinate file.
+======================================================================== */
+const BLD = {
+  W: 30, D: 18, H: 3.6, storeys: 3, splitX: 15, inset: 0.5,
+  colX: [0, 6, 12, 18, 24, 30], colZ: [0, 6, 12, 18],
+  core: { x0: 12, x1: 18, z0: 6, z1: 12 },
+  // discipline of each fit-out operand key
+  disc: { part: 'architectural', duct: 'mep', board: 'architectural', fixture: 'mep', finish: 'architectural' },
+};
+const zoneBox = (s, zc) => ({
+  x0: zc === 'W' ? 0 : BLD.splitX, x1: zc === 'W' ? BLD.splitX : BLD.W,
+  z0: 0, z1: BLD.D, y0: (s - 1) * BLD.H, y1: s * BLD.H,
+});
+
+/* ========================================================================
+   2. Load + parse Turtle (fetch when served; embedded fallback for file://)
+======================================================================== */
+async function loadTurtle() {
+  try {
+    const r = await fetch('../examples/takt-building-demo.ttl');
+    if (r.ok) return await r.text();
+    throw new Error(r.status);
+  } catch {
+    console.warn('fetch failed (file:// ?) — using embedded snapshot');
+    return document.getElementById('embeddedTtl').textContent;
+  }
+}
+function indexTriples(quads) {
+  const spo = new Map(), ops = new Map();
+  for (const q of quads) {
+    const s = q.subject.value, p = q.predicate.value;
+    const o = q.object.termType === 'Literal' ? { lit: q.object.value } : { iri: q.object.value };
+    if (!spo.has(s)) spo.set(s, new Map());
+    const pm = spo.get(s); if (!pm.has(p)) pm.set(p, []); pm.get(p).push(o);
+    if (o.iri) {
+      if (!ops.has(o.iri)) ops.set(o.iri, new Map());
+      const rm = ops.get(o.iri); if (!rm.has(p)) rm.set(p, []); rm.get(p).push(s);
+    }
+  }
+  return { spo, ops };
+}
+const val  = (spo, s, p) => { const v = spo.get(s)?.get(p)?.[0]; return v ? (v.lit ?? v.iri) : undefined; };
+const vals = (spo, s, p) => (spo.get(s)?.get(p) ?? []).map(v => v.lit ?? v.iri);
+
+/* ========================================================================
+   3. Build the takt model from RDF
+======================================================================== */
+function buildModel({ spo, ops }) {
+  const byType = (t) => [...spo.keys()].filter(s => vals(spo, s, RDF_TYPE).includes(t));
+  const label = (s) => val(spo, s, LABEL) ?? qname(s);
+
+  const wagons = byType(T('WagonType')).sort((a, b) => label(a).localeCompare(label(b)))
+    .map((iri, i) => {
+      const l = label(iri);
+      const short = (l.includes('·') ? l.split('·').slice(1).join('·') : l).split('—')[0].split(',')[0].trim();
+      return { iri, label: l, short, trade: val(spo, iri, T('trade')), color: WAGON_PALETTE[i % WAGON_PALETTE.length] };
+    });
+  const wagonOf = Object.fromEntries(wagons.map(w => [w.iri, w]));
+
+  const zonesRaw = byType(T('TaktZone')).map(iri => ({
+    iri, label: label(iri),
+    adjacent: vals(spo, iri, B('adjacentZone')),
+    elements: vals(spo, iri, B('containsElement')),
+  }));
+  const pointedTo = new Set(zonesRaw.flatMap(z => z.adjacent));
+  let cur = zonesRaw.find(z => !pointedTo.has(z.iri)) ?? zonesRaw[0];
+  const zones = []; const seen = new Set();
+  while (cur && !seen.has(cur.iri)) { zones.push(cur); seen.add(cur.iri); cur = zonesRaw.find(z => cur.adjacent.includes(z.iri) && !seen.has(z.iri)); }
+  zonesRaw.forEach(z => { if (!seen.has(z.iri)) zones.push(z); });
+
+  const tasks = byType(T('TaktTask')).map(iri => ({
+    iri, label: label(iri),
+    slot: parseInt(val(spo, iri, T('slot')) ?? '0', 10),
+    zone: val(spo, iri, T('performedIn')),
+    wagon: val(spo, iri, T('instantiates')),
+    crew: val(spo, iri, T('performedBy')),
+    actsOn: vals(spo, iri, T('actsOn')),
+    succZone: vals(spo, iri, T('hasSuccessorSameZone')),
+    succWagon: vals(spo, iri, T('hasSuccessorSameWagon')),
+    succ: vals(spo, iri, T('hasSuccessor')),
+    isBuffer: val(spo, iri, T('isBuffer')) === 'true',
+    isMilestone: val(spo, iri, T('isMilestone')) === 'true',
+  }));
+
+  const crews = byType(T('Crew')).map(iri => ({ iri, label: label(iri) }));
+  const planIri = byType(T('TaktGraph'))[0];
+  const durDays = parseInt((val(spo, planIri, T('taktDuration')) ?? 'P7D').match(/(\d+)D/)?.[1] ?? '7', 10);
+  const planStart = new Date(val(spo, planIri, T('planStart')) ?? '2024-01-01');
+  const maxSlot = Math.max(...tasks.map(t => t.slot), 1);
+  const slotDate = (slot) => new Date(planStart.getTime() + (slot - 1) * durDays * 864e5);
+
+  // buildSlot per element = slot of the task that acts on it (drives 3D build-up)
+  const buildSlot = {};
+  tasks.forEach(t => t.actsOn.forEach(e => { buildSlot[e] = Math.min(buildSlot[e] ?? 99, t.slot); }));
+  const wagonSlotInZone = {};   // zone -> slot -> wagon (for 3D zone tint)
+  tasks.forEach(t => { if (t.zone) (wagonSlotInZone[t.zone] ??= {})[t.slot] = t; });
+
+  const elements = [...new Set(tasks.flatMap(t => t.actsOn).concat(zones.flatMap(z => z.elements)))]
+    .map(iri => ({ iri, label: label(iri) }));
+
+  return { spo, ops, label, wagons, wagonOf, zones, tasks, crews, elements,
+           buildSlot, wagonSlotInZone,
+           plan: { iri: planIri, label: label(planIri), durDays, planStart }, maxSlot, slotDate };
+}
+
+/* ========================================================================
+   4. App state + cross-view sync
+======================================================================== */
+const state = { slot: 1, selected: null, playing: false };
+const listeners = [];
+const onChange = (fn) => listeners.push(fn);
+const emit = () => listeners.forEach(fn => fn());
+const setSlot = (s) => { state.slot = s; emit(); };
+const select = (iri) => { state.selected = iri; emit(); };
+
+/* ========================================================================
+   5. Takt plan grid (planner layer)
+======================================================================== */
+function renderGrid(m) {
+  const tbl = document.getElementById('taktTable');
+  const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  const draw = () => {
+    let html = '<tr><th class="zone">Zone</th>';
+    for (let s = 1; s <= m.maxSlot; s++)
+      html += `<th class="${s === state.slot ? 'cur' : ''}">T${s}<br><small>${fmt(m.slotDate(s))}</small></th>`;
+    html += '</tr>';
+    for (const z of m.zones) {
+      html += `<tr><th class="zone"><a data-iri="${z.iri}" style="cursor:pointer">${z.label}</a></th>`;
+      for (let s = 1; s <= m.maxSlot; s++) {
+        const t = m.tasks.find(t => t.zone === z.iri && t.slot === s);
+        html += `<td class="${s === state.slot ? 'cur' : ''}">`;
+        if (t) {
+          const w = m.wagonOf[t.wagon];
+          const cls = t.isBuffer ? 'buffer' : t.isMilestone ? 'milestone' : '';
+          const sel = state.selected === t.iri ? ' sel' : '';
+          const style = w ? `style="border-left-color:${w.color};background:${w.color}22"` : '';
+          const head = t.isBuffer ? 'buffer' : t.isMilestone ? '◆ handover' : (w ? w.short : t.label);
+          const sub = t.isBuffer ? 'capacity' : t.isMilestone ? 'milestone' : (t.crew ? m.label(t.crew) : '');
+          html += `<div class="chip ${cls}${sel}" ${style} data-iri="${t.iri}"><b>${head}</b><span>${sub}</span></div>`;
+        }
+        html += '</td>';
+      }
+      html += '</tr>';
+    }
+    tbl.innerHTML = html;
+    tbl.querySelectorAll('[data-iri]').forEach(el => el.addEventListener('click', () => select(el.dataset.iri)));
+  };
+  draw(); onChange(draw);
+}
+
+/* ========================================================================
+   6. Knowledge-graph view (d3 force)
+======================================================================== */
+function renderGraph(m) {
+  const svg = d3.select('#graphSvg');
+  const root = svg.append('g');
+  svg.call(d3.zoom().scaleExtent([0.2, 3]).on('zoom', (e) => root.attr('transform', e.transform)));
+  const defs = svg.append('defs');
+  const EDGE = {
+    succZone:  { color: '#e07a6a' }, succWagon: { color: '#6aa7e0' }, succ: { color: '#a9b3c0' },
+    performedIn: { color: '#3fa7a0' }, instantiates: { color: '#c9a44e' },
+    performedBy: { color: '#8a93a3' }, actsOn: { color: '#7d8b6a' },
+    adjacent: { color: '#3fa7a0', dashed: true },
+  };
+  Object.entries(EDGE).forEach(([k, e]) => defs.append('marker')
+    .attr('id', 'arr-' + k).attr('viewBox', '0 -4 8 8').attr('refX', 13).attr('markerWidth', 6)
+    .attr('markerHeight', 6).attr('orient', 'auto').append('path').attr('d', 'M0,-4L8,0L0,4').attr('fill', e.color));
+
+  const build = () => {
+    const showEl = document.getElementById('tglElements').checked;
+    const showCrew = document.getElementById('tglCrews').checked;
+    const nodes = [], links = [];
+    const add = (iri, kind, label, color, r) => nodes.push({ id: iri, kind, label, color, r });
+    m.zones.forEach(z => add(z.iri, 'zone', z.label, '#3fa7a0', 9));
+    m.wagons.forEach(w => add(w.iri, 'wagon', w.short, w.color, 9));
+    if (showCrew) m.crews.forEach(c => add(c.iri, 'crew', c.label, '#8a93a3', 6));
+    if (showEl) m.elements.forEach(e => add(e.iri, 'element', m.label(e.iri).split(',')[0], '#7d8b6a', 5));
+    m.tasks.forEach(t => {
+      const w = m.wagonOf[t.wagon];
+      const c = t.isBuffer ? '#6b7280' : t.isMilestone ? '#c0392b' : (w ? w.color : '#888');
+      add(t.iri, 'task', '', c, 6);
+    });
+    const nodeSet = new Set(nodes.map(n => n.id));
+    const L = (s, o, kind) => { if (nodeSet.has(s) && nodeSet.has(o)) links.push({ source: s, target: o, kind }); };
+    m.tasks.forEach(t => {
+      if (t.zone) L(t.iri, t.zone, 'performedIn');
+      if (t.wagon) L(t.iri, t.wagon, 'instantiates');
+      if (showCrew && t.crew) L(t.iri, t.crew, 'performedBy');
+      if (showEl) t.actsOn.forEach(e => L(t.iri, e, 'actsOn'));
+      t.succZone.forEach(o => L(t.iri, o, 'succZone'));
+      t.succWagon.forEach(o => L(t.iri, o, 'succWagon'));
+      t.succ.forEach(o => L(t.iri, o, 'succ'));
+    });
+    m.zones.forEach(z => z.adjacent.forEach(o => L(z.iri, o, 'adjacent')));
+    return { nodes, links };
+  };
+
+  let sim, restyle;
+  const draw = () => {
+    const { nodes, links } = build();
+    root.selectAll('*').remove();
+    const { width, height } = svg.node().getBoundingClientRect();
+    const link = root.append('g').selectAll('path').data(links).join('path')
+      .attr('class', 'glink').attr('stroke', d => EDGE[d.kind].color)
+      .attr('stroke-width', d => d.kind.startsWith('succ') ? 1.6 : 1)
+      .attr('stroke-dasharray', d => EDGE[d.kind].dashed ? '4 3' : null)
+      .attr('opacity', .8).attr('marker-end', d => d.kind === 'adjacent' ? null : `url(#arr-${d.kind})`);
+    const node = root.append('g').selectAll('g').data(nodes).join('g').attr('class', 'gnode')
+      .call(d3.drag()
+        .on('start', (e, d) => { if (!e.active) sim.alphaTarget(.2).restart(); d.fx = d.x; d.fy = d.y; })
+        .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+        .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = d.fy = null; }))
+      .on('click', (e, d) => { e.stopPropagation(); select(d.id); });
+    node.append('circle').attr('r', d => d.r)
+      .attr('fill', d => d.color + (d.kind === 'task' ? '' : '55'))
+      .attr('stroke', d => d.color).attr('stroke-width', 1.5);
+    node.filter(d => d.label).append('text').attr('dy', d => -d.r - 3).attr('text-anchor', 'middle').text(d => d.label);
+
+    sim = d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id(d => d.id).distance(d => d.kind.startsWith('succ') ? 46 : 40).strength(.5))
+      .force('charge', d3.forceManyBody().strength(-130))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('collide', d3.forceCollide().radius(d => d.r + 6))
+      .on('tick', () => {
+        link.attr('d', d => `M${d.source.x},${d.source.y}L${d.target.x},${d.target.y}`);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+
+    restyle = () => {
+      const active = new Set(m.tasks.filter(t => t.slot === state.slot).map(t => t.iri));
+      node.select('circle')
+        .attr('stroke-width', d => d.id === state.selected ? 3.5 : (active.has(d.id) ? 2.6 : 1.5))
+        .attr('stroke', d => d.id === state.selected ? '#fff' : d.color)
+        .attr('r', d => active.has(d.id) && d.kind === 'task' ? d.r + 1.5 : d.r);
+      node.classed('dim', d => state.selected && d.id !== state.selected &&
+        !links.some(l => (l.source.id === state.selected && l.target.id === d.id) || (l.target.id === state.selected && l.source.id === d.id)));
+      link.classed('dim', l => state.selected && l.source.id !== state.selected && l.target.id !== state.selected);
+    };
+    restyle();
+  };
+  draw();
+  onChange(() => restyle && restyle());
+  document.getElementById('tglElements').addEventListener('change', draw);
+  document.getElementById('tglCrews').addEventListener('change', draw);
+  svg.on('click', () => select(null));
+}
+
+/* ========================================================================
+   7. 3D building view — procedural shell + fit-out that builds up per takt
+======================================================================== */
+function render3D(m) {
+  const mount = document.getElementById('threeMount');
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0e1116);
+  const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 800);
+  camera.position.set(-17, 16, 27);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  mount.appendChild(renderer.domElement);
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.target.set(BLD.W / 2, BLD.H * BLD.storeys / 2, BLD.D / 2);
+  controls.enableDamping = true;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.5); sun.position.set(-24, 40, 18); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0x9fb4d0, 0x0e1116, 0.4));
+  const grid = new THREE.GridHelper(90, 45, 0x232a34, 0x171d25);
+  grid.position.set(BLD.W / 2, -0.02, BLD.D / 2); scene.add(grid);
+
+  // materials
+  const M = {
+    slab:    () => new THREE.MeshStandardMaterial({ color: 0x6b7480, roughness: .95 }),
+    column:  () => new THREE.MeshStandardMaterial({ color: 0x7c8592, roughness: .8 }),
+    beam:    () => new THREE.MeshStandardMaterial({ color: 0x717a87, roughness: .85 }),
+    core:    () => new THREE.MeshStandardMaterial({ color: 0x596170, roughness: .9 }),
+    glass:   () => new THREE.MeshStandardMaterial({ color: 0x8fb4dc, transparent: true, opacity: .07, roughness: .1, metalness: .1, depthWrite: false, side: THREE.DoubleSide }),
+    stud:    () => new THREE.MeshStandardMaterial({ color: 0x9aa4b2, roughness: .7, metalness: .3 }),
+    board:   () => new THREE.MeshStandardMaterial({ color: 0xd7dbe1, roughness: .95 }),
+    duct:    () => new THREE.MeshStandardMaterial({ color: 0xb2b8c1, roughness: .4, metalness: .6 }),
+    fixture: () => new THREE.MeshStandardMaterial({ color: 0x30353d, roughness: .5, metalness: .4 }),
+    finish:  () => new THREE.MeshStandardMaterial({ color: 0xc7a377, roughness: .9 }),
+    riser:   () => new THREE.MeshStandardMaterial({ color: 0xa9702f, roughness: .5, metalness: .5 }),
+    ahu:     () => new THREE.MeshStandardMaterial({ color: 0x8a929c, roughness: .6, metalness: .4 }),
+  };
+  const addBox = (parent, x0, x1, y0, y1, z0, z1, mat) => {
+    const g = new THREE.BoxGeometry(Math.max(Math.abs(x1 - x0), .05), Math.max(Math.abs(y1 - y0), .05), Math.max(Math.abs(z1 - z0), .05));
+    const mesh = new THREE.Mesh(g, mat);
+    mesh.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+    parent.add(mesh); return mesh;
+  };
+
+  const shell = [];          // {mesh, discipline}
+  const fitout = [];         // {group, iri, discipline, buildSlot, baseColor}
+  const pickables = [];      // meshes that carry userData.iri
+
+  // ---- STRUCTURAL: ground + storey slabs + roof, columns, perimeter beams, core
+  const topY = BLD.H * BLD.storeys;
+  const pushShell = (mesh, disc, iri) => { shell.push({ mesh, discipline: disc }); if (iri) { mesh.userData.iri = iri; pickables.push(mesh); } };
+  pushShell(addBox(scene, -.5, BLD.W + .5, -0.35, 0, -.5, BLD.D + .5, M.slab()), 'structural');   // ground
+  for (let s = 1; s <= BLD.storeys; s++) {
+    const y = s * BLD.H;
+    pushShell(addBox(scene, 0, BLD.W, y - 0.28, y, 0, BLD.D, M.slab()), 'structural', NS.ex + `slab_L${s}`);
+    // perimeter beams just under each slab
+    [[0, BLD.W, 0, .35], [0, BLD.W, BLD.D - .35, BLD.D]].forEach(([a, b, c, d]) =>
+      pushShell(addBox(scene, a, b, y - .6, y - .28, c, d, M.beam()), 'structural'));
+    [[0, .35, 0, BLD.D], [BLD.W - .35, BLD.W, 0, BLD.D]].forEach(([a, b, c, d]) =>
+      pushShell(addBox(scene, a, b, y - .6, y - .28, c, d, M.beam()), 'structural'));
+  }
+  // columns at grid intersections, full height
+  BLD.colX.forEach(x => BLD.colZ.forEach(z => {
+    const x0 = Math.min(Math.max(x - .2, 0), BLD.W - .4), z0 = Math.min(Math.max(z - .2, 0), BLD.D - .4);
+    pushShell(addBox(scene, x0, x0 + .4, 0, topY, z0, z0 + .4, M.column()), 'structural');
+  }));
+  // structural core (4 walls around the core bay, full height)
+  const c = BLD.core, tcore = .3;
+  [[c.x0, c.x1, c.z0, c.z0 + tcore], [c.x0, c.x1, c.z1 - tcore, c.z1],
+   [c.x0, c.x0 + tcore, c.z0, c.z1], [c.x1 - tcore, c.x1, c.z0, c.z1]].forEach(([a, b, d, e], i) =>
+    pushShell(addBox(scene, a, b, 0, topY, d, e, M.core()), 'structural', i === 0 ? NS.ex + 'core' : null));
+
+  // ---- ARCHITECTURAL shell: perimeter facade glazing per storey
+  for (let s = 1; s <= BLD.storeys; s++) {
+    const y0 = (s - 1) * BLD.H + .3, y1 = s * BLD.H - .3, g = .12;
+    [[0, BLD.W, 0, g], [0, BLD.W, BLD.D - g, BLD.D], [0, g, 0, BLD.D], [BLD.W - g, BLD.W, 0, BLD.D]].forEach(([a, b, d, e]) =>
+      pushShell(addBox(scene, a, b, y0, y1, d, e, M.glass()), 'architectural'));
+  }
+  // ---- MEP shell: risers in the core + roof AHU
+  pushShell(addBox(scene, c.x0 + .6, c.x0 + 1.0, 0, topY, c.z0 + .6, c.z0 + 1.0, M.riser()), 'mep');
+  pushShell(addBox(scene, c.x1 - 1.0, c.x1 - .6, 0, topY, c.z1 - 1.0, c.z1 - .6, M.riser()), 'mep');
+  pushShell(addBox(scene, c.x0 + .5, c.x1 - .5, topY, topY + 1.4, c.z0 + .5, c.z1 - .5, M.ahu()), 'mep');
+
+  // ---- FIT-OUT operands per zone, keyed by IRI, gated by buildSlot
+  const buildOperand = (key, s, zc) => {
+    const zb = zoneBox(s, zc), iri = NS.ex + `${key}_L${s}_${zc}`;
+    if (m.buildSlot[iri] == null) return;
+    const ix0 = zb.x0 + BLD.inset, ix1 = zb.x1 - BLD.inset, iz0 = 1, iz1 = BLD.D - 1;
+    const yb = zb.y0, yt = zb.y1, ceil = yt - .18;
+    const group = new THREE.Group(); scene.add(group);
+    const wagonColor = (m.wagons.find(w => w.trade && key === ({ framing: 'part', 'mep-rough': 'duct', drywall: 'board', 'mep-fix': 'fixture', finish: 'finish' })[w.trade]) || {}).color || '#888';
+    const mk = (matFn, boxes) => boxes.forEach(([a, b, d, e, f, g]) => {
+      const mesh = addBox(group, a, b, d, e, f, g, matFn());
+      mesh.userData.iri = iri; pickables.push(mesh);
+    });
+    const wx1 = ix0 + (ix1 - ix0) * .34, wx2 = ix0 + (ix1 - ix0) * .68;
+    if (key === 'part')   mk(M.stud, [[wx1 - .05, wx1 + .05, yb, yt - .25, iz0, iz1], [wx2 - .05, wx2 + .05, yb, yt - .25, iz0, iz1]]);
+    if (key === 'board')  mk(M.board, [[wx1 - .12, wx1 + .12, yb, yt - .25, iz0, iz1], [wx2 - .12, wx2 + .12, yb, yt - .25, iz0, iz1]]);
+    if (key === 'duct')   mk(M.duct, [[(ix0 + ix1) / 2 - .3, (ix0 + ix1) / 2 + .3, ceil - .35, ceil, iz0, iz1]]);
+    if (key === 'fixture') { const cx = (ix0 + ix1) / 2; mk(M.fixture, [0, 1, 2].map(i => { const z = iz0 + (iz1 - iz0) * (i + .5) / 3; return [cx - .3, cx + .3, ceil - .12, ceil, z - .3, z + .3]; })); }
+    if (key === 'finish') mk(M.finish, [[ix0, ix1, yb + .02, yb + .09, iz0, iz1]]);
+    fitout.push({ group, iri, discipline: BLD.disc[key], buildSlot: m.buildSlot[iri], baseColor: wagonColor });
+  };
+  for (let s = 1; s <= BLD.storeys; s++) for (const [zc] of [['W'], ['E']])
+    ['part', 'duct', 'board', 'fixture', 'finish'].forEach(k => buildOperand(k, s, zc));
+
+  // ---- zone tint volumes
+  const zoneMesh = {};
+  m.zones.forEach(z => {
+    const mm = z.iri.match(/zone_L(\d)_([WE])/); if (!mm) return;
+    const zb = zoneBox(+mm[1], mm[2]);
+    const mesh = addBox(scene, zb.x0 + .3, zb.x1 - .3, zb.y0 + .1, zb.y1 - .3, zb.z0 + .3, zb.z1 - .3,
+      new THREE.MeshStandardMaterial({ color: 0x8b96a5, transparent: true, opacity: .05, depthWrite: false }));
+    mesh.userData.iri = z.iri; pickables.push(mesh);
+    const wire = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({ color: 0x3fa7a0, transparent: true, opacity: .4 }));
+    wire.position.copy(mesh.position); scene.add(wire);
+    zoneMesh[z.iri] = { mesh, wire };
+    // floating label
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 64;
+    const cx = cv.getContext('2d'); cx.font = '600 30px Segoe UI'; cx.fillStyle = '#c7cfda'; cx.textAlign = 'center';
+    cx.fillText(z.label, 128, 42);
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false }));
+    spr.scale.set(4.4, 1.1, 1); spr.position.set((zb.x0 + zb.x1) / 2, zb.y1 - .5, (zb.z0 + zb.z1) / 2);
+    scene.add(spr); zoneMesh[z.iri].label = spr;
+  });
+
+  // ---- discipline toggles
+  const discOn = { structural: true, architectural: true, mep: true };
+  const bind = (id, key) => document.getElementById(id).addEventListener('change', e => { discOn[key] = e.target.checked; update(); });
+  bind('tglStruct', 'structural'); bind('tglArch', 'architectural'); bind('tglMep', 'mep');
+
+  // ---- picking
+  const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+  renderer.domElement.addEventListener('click', ev => {
+    const r = renderer.domElement.getBoundingClientRect();
+    ptr.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ptr, camera);
+    const hits = ray.intersectObjects(pickables.filter(o => o.visible && o.parent?.visible !== false), false)
+      .sort((a, b) => (a.object.userData.iri?.includes('zone_') ? 1 : 0) - (b.object.userData.iri?.includes('zone_') ? 1 : 0));
+    if (!hits.length) return select(null);
+    const iri = hits[0].object.userData.iri;
+    if (iri.includes('zone_')) {
+      const active = m.tasks.find(t => t.zone === iri && t.slot === state.slot);
+      return select(active ? active.iri : iri);
+    }
+    select(iri);
+  });
+
+  const update = () => {
+    shell.forEach(s => { s.mesh.visible = discOn[s.discipline]; });
+    fitout.forEach(f => {
+      const built = f.buildSlot <= state.slot;
+      const vis = discOn[f.discipline] && built;
+      f.group.visible = vis;
+      const active = f.buildSlot === state.slot;
+      const selHit = state.selected === f.iri;
+      f.group.children.forEach(ch => {
+        ch.material.emissive = new THREE.Color(selHit ? 0x5aa2e8 : active ? f.baseColor : 0x000000);
+        ch.material.emissiveIntensity = selHit ? .7 : active ? .5 : 0;
+      });
+    });
+    m.zones.forEach(z => {
+      const zm = zoneMesh[z.iri]; if (!zm) return;
+      const t = m.wagonSlotInZone[z.iri]?.[state.slot];
+      const w = t && m.wagonOf[t.wagon];
+      let color = 0x8b96a5, opacity = .04;
+      if (t) {
+        if (t.isMilestone) { color = 0xc0392b; opacity = .28; }
+        else if (t.isBuffer) { color = 0x6b7280; opacity = .16; }
+        else if (w) { color = parseInt(w.color.slice(1), 16); opacity = .30; }
+      }
+      zm.mesh.material.color.setHex(color); zm.mesh.material.opacity = opacity;
+      const sel = state.selected === z.iri || (t && state.selected === t.iri);
+      zm.wire.material.color.setHex(sel ? 0xffffff : 0x3fa7a0);
+      zm.wire.material.opacity = sel ? .95 : .4;
+    });
+  };
+  update(); onChange(update);
+
+  const resize = () => {
+    const w = mount.clientWidth, h = mount.clientHeight; if (!w || !h) return;
+    renderer.setSize(w, h); renderer.setPixelRatio(devicePixelRatio);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  };
+  new ResizeObserver(resize).observe(mount); resize();
+  renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+}
+
+/* ========================================================================
+   8. Inspector + legend
+======================================================================== */
+function renderInspector(m) {
+  const el = document.getElementById('inspector');
+  const kindOf = (iri) => { const t = vals(m.spo, iri, RDF_TYPE)[0]; return t ? qname(t) : ''; };
+  const draw = () => {
+    if (!state.selected) { el.innerHTML = '<div class="hint">Click a cell, node, zone or element.</div>'; return; }
+    const s = state.selected;
+    const link = (iri) => `<a data-iri="${iri}">${m.label(iri) ?? qname(iri)}</a>`;
+    let rows = '';
+    for (const [p, os] of (m.spo.get(s) ?? new Map()))
+      for (const o of os) rows += `<tr><td class="p">${qname(p)}</td><td>${o.iri ? link(o.iri) : `<b>${o.lit}</b>`}</td></tr>`;
+    let rev = '';
+    for (const [p, ss] of (m.ops.get(s) ?? new Map())) for (const sub of ss) rev += `<tr><td class="p">⟵ ${qname(p)}</td><td>${link(sub)}</td></tr>`;
+    el.innerHTML = `<h2>${m.label(s)}</h2><div class="badge">${kindOf(s)}</div><div class="iri">${s}</div>
+      <table>${rows}</table>${rev ? `<div class="rev">referenced by</div><table>${rev}</table>` : ''}`;
+    el.querySelectorAll('a[data-iri]').forEach(a => a.addEventListener('click', () => select(a.dataset.iri)));
+  };
+  draw(); onChange(draw);
+
+  const lg = document.getElementById('legend');
+  lg.innerHTML = '<div class="paneltitle">Train (wagons)</div>' +
+    m.wagons.map(w => `<div class="row"><span class="sw" style="background:${w.color}"></span>${w.short} <small>· ${w.trade ?? ''}</small></div>`).join('') +
+    `<div class="row"><span class="sw" style="background:#c0392b"></span>milestone</div>
+     <div class="paneltitle" style="margin-top:10px">Flow</div>
+     <div class="row"><span class="sw line" style="background:#e07a6a"></span>same zone (Reading A)</div>
+     <div class="row"><span class="sw line" style="background:#6aa7e0"></span>same wagon (Reading B)</div>
+     <div class="row"><span class="sw line" style="background:#3fa7a0"></span>zone adjacency</div>`;
+}
+
+/* ========================================================================
+   9. Scrubber + play
+======================================================================== */
+function renderControls(m) {
+  const slider = document.getElementById('slotSlider'), info = document.getElementById('slotInfo'), play = document.getElementById('playBtn');
+  slider.max = m.maxSlot;
+  const fmt = (d) => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const draw = () => {
+    slider.value = state.slot;
+    const active = m.tasks.filter(t => t.slot === state.slot && !t.isBuffer && !t.isMilestone).length;
+    info.textContent = `Takt T${state.slot} · w/c ${fmt(m.slotDate(state.slot))} · ${active} wagon${active === 1 ? '' : 's'} on site`;
+  };
+  draw(); onChange(draw);
+  slider.addEventListener('input', () => setSlot(+slider.value));
+  let timer = null;
+  play.addEventListener('click', () => {
+    state.playing = !state.playing; play.textContent = state.playing ? '⏸' : '▶';
+    if (state.playing) timer = setInterval(() => setSlot(state.slot % m.maxSlot + 1), 1100);
+    else clearInterval(timer);
+  });
+}
+
+/* ======================================================================== boot */
+const ttl = await loadTurtle();
+const quads = new N3.Parser().parse(ttl);
+const model = buildModel(indexTriples(quads));
+renderGrid(model);
+renderGraph(model);
+render3D(model);
+renderInspector(model);
+renderControls(model);
+</script>
+
+<!-- Embedded snapshot of examples/takt-building-demo.ttl so file:// works.
+     Regenerate with scripts/embed_viz_data.py after editing the example. -->
+<script id="embeddedTtl" type="text/turtle">
+# =============================================================================
+# Building fit-out takt plan — anonymized 3-storey building, 6 takt zones
+# GENERATED by scripts/generate_building_demo.py — do not edit by hand.
+# Conforms to ontology/takt.ttl v0.5.0. Used by viz/index.html (the 3-layer
+# visualizer: plan grid + knowledge graph + 3D building).
+#
+# A 5-wagon interiors train (framing -> MEP rough-in -> drywall -> MEP
+# fixtures -> paint/floor) flows through West+East zones on L1-L3 as a
+# flowline: slot(zone p, wagon w) = p + w. Structural slabs + core are
+# pre-existing building fabric (bot:Element, no takt task). Element quantities
+# / geometry travel as TGraph-style side data (viz/index.html), not core terms.
+# =============================================================================
+
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ex:   <https://w3id.org/taktology/examples/building#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# --- THE PLAN — a takt:TaktGraph (top:KnowledgeGraph + dtc:ConstructionSchedule) ---
+ex:plan a takt:TaktGraph ;
+    rdfs:label "Building fit-out plan — Project Aspen (anonymized)"@en ;
+    takt:taktDuration "P7D"^^xsd:duration ;
+    takt:planStart    "2024-09-02"^^xsd:date ;
+    dtc:hasProcess ex:task_L1_W_w1 ,
+                   ex:task_L1_W_w2 ,
+                   ex:task_L1_W_w3 ,
+                   ex:task_L1_W_w4 ,
+                   ex:task_L1_W_w5 ,
+                   ex:task_L1_E_w1 ,
+                   ex:task_L1_E_w2 ,
+                   ex:task_L1_E_w3 ,
+                   ex:task_L1_E_w4 ,
+                   ex:task_L1_E_w5 ,
+                   ex:task_L2_W_w1 ,
+                   ex:task_L2_W_w2 ,
+                   ex:task_L2_W_w3 ,
+                   ex:task_L2_W_w4 ,
+                   ex:task_L2_W_w5 ,
+                   ex:task_L2_E_w1 ,
+                   ex:task_L2_E_w2 ,
+                   ex:task_L2_E_w3 ,
+                   ex:task_L2_E_w4 ,
+                   ex:task_L2_E_w5 ,
+                   ex:task_L3_W_w1 ,
+                   ex:task_L3_W_w2 ,
+                   ex:task_L3_W_w3 ,
+                   ex:task_L3_W_w4 ,
+                   ex:task_L3_W_w5 ,
+                   ex:task_L3_E_w1 ,
+                   ex:task_L3_E_w2 ,
+                   ex:task_L3_E_w3 ,
+                   ex:task_L3_E_w4 ,
+                   ex:task_L3_E_w5 ,
+                   ex:task_handover .
+
+# --- The on-site fit-out PROCESS (TBS process axis; Ljung 2026) ---
+ex:process_fitout a dtc:Process ;
+    rdfs:label "Interior fit-out process"@en .
+
+# --- BUILDING / STOREYS (BOT topology) ---
+ex:building a bot:Building ;
+    rdfs:label "Project Aspen (anonymized)"@en ;
+    bot:hasStorey ex:storey_L1 , ex:storey_L2 , ex:storey_L3 .
+
+ex:storey_L1 a bot:Storey ;
+    rdfs:label "Level 1"@en ;
+    bot:containsZone ex:zone_L1_W , ex:zone_L1_E ;
+    bot:containsElement ex:slab_L1 .
+ex:storey_L2 a bot:Storey ;
+    rdfs:label "Level 2"@en ;
+    bot:containsZone ex:zone_L2_W , ex:zone_L2_E ;
+    bot:containsElement ex:slab_L2 .
+ex:storey_L3 a bot:Storey ;
+    rdfs:label "Level 3"@en ;
+    bot:containsZone ex:zone_L3_W , ex:zone_L3_E ;
+    bot:containsElement ex:slab_L3 .
+
+# Structural fabric carried in the graph (pre-existing shell; no takt task).
+ex:slab_L1 a bot:Element ; rdfs:label "Floor slab, Level 1"@en .
+ex:slab_L2 a bot:Element ; rdfs:label "Floor slab, Level 2"@en .
+ex:slab_L3 a bot:Element ; rdfs:label "Floor slab, Level 3"@en .
+ex:core a bot:Element ; rdfs:label "Structural core (stairs + shafts)"@en .
+
+# --- TAKT ZONES + their trade operands (bot:containsElement) ---
+ex:zone_L1_W a takt:TaktZone ;
+    rdfs:label "L1 West (Z1)" ;
+    bot:adjacentZone ex:zone_L1_E ;
+    bot:containsElement ex:part_L1_W ,
+                        ex:duct_L1_W ,
+                        ex:board_L1_W ,
+                        ex:fixture_L1_W ,
+                        ex:finish_L1_W ,
+                        ex:slab_L1 ,
+                        ex:core .
+ex:zone_L1_E a takt:TaktZone ;
+    rdfs:label "L1 East (Z2)" ;
+    bot:adjacentZone ex:zone_L2_W ;
+    bot:containsElement ex:part_L1_E ,
+                        ex:duct_L1_E ,
+                        ex:board_L1_E ,
+                        ex:fixture_L1_E ,
+                        ex:finish_L1_E ,
+                        ex:slab_L1 ,
+                        ex:core .
+ex:zone_L2_W a takt:TaktZone ;
+    rdfs:label "L2 West (Z3)" ;
+    bot:adjacentZone ex:zone_L2_E ;
+    bot:containsElement ex:part_L2_W ,
+                        ex:duct_L2_W ,
+                        ex:board_L2_W ,
+                        ex:fixture_L2_W ,
+                        ex:finish_L2_W ,
+                        ex:slab_L2 ,
+                        ex:core .
+ex:zone_L2_E a takt:TaktZone ;
+    rdfs:label "L2 East (Z4)" ;
+    bot:adjacentZone ex:zone_L3_W ;
+    bot:containsElement ex:part_L2_E ,
+                        ex:duct_L2_E ,
+                        ex:board_L2_E ,
+                        ex:fixture_L2_E ,
+                        ex:finish_L2_E ,
+                        ex:slab_L2 ,
+                        ex:core .
+ex:zone_L3_W a takt:TaktZone ;
+    rdfs:label "L3 West (Z5)" ;
+    bot:adjacentZone ex:zone_L3_E ;
+    bot:containsElement ex:part_L3_W ,
+                        ex:duct_L3_W ,
+                        ex:board_L3_W ,
+                        ex:fixture_L3_W ,
+                        ex:finish_L3_W ,
+                        ex:slab_L3 ,
+                        ex:core .
+ex:zone_L3_E a takt:TaktZone ;
+    rdfs:label "L3 East (Z6)" ;
+    bot:containsElement ex:part_L3_E ,
+                        ex:duct_L3_E ,
+                        ex:board_L3_E ,
+                        ex:fixture_L3_E ,
+                        ex:finish_L3_E ,
+                        ex:slab_L3 ,
+                        ex:core .
+
+ex:part_L1_W a bot:Element ; rdfs:label "Stud partitions, L1 West"@en .
+ex:duct_L1_W a bot:Element ; rdfs:label "Duct & conduit run, L1 West"@en .
+ex:board_L1_W a bot:Element ; rdfs:label "Drywall boarding, L1 West"@en .
+ex:fixture_L1_W a bot:Element ; rdfs:label "MEP fixtures, L1 West"@en .
+ex:finish_L1_W a bot:Element ; rdfs:label "Paint & floor finish, L1 West"@en .
+ex:part_L1_E a bot:Element ; rdfs:label "Stud partitions, L1 East"@en .
+ex:duct_L1_E a bot:Element ; rdfs:label "Duct & conduit run, L1 East"@en .
+ex:board_L1_E a bot:Element ; rdfs:label "Drywall boarding, L1 East"@en .
+ex:fixture_L1_E a bot:Element ; rdfs:label "MEP fixtures, L1 East"@en .
+ex:finish_L1_E a bot:Element ; rdfs:label "Paint & floor finish, L1 East"@en .
+ex:part_L2_W a bot:Element ; rdfs:label "Stud partitions, L2 West"@en .
+ex:duct_L2_W a bot:Element ; rdfs:label "Duct & conduit run, L2 West"@en .
+ex:board_L2_W a bot:Element ; rdfs:label "Drywall boarding, L2 West"@en .
+ex:fixture_L2_W a bot:Element ; rdfs:label "MEP fixtures, L2 West"@en .
+ex:finish_L2_W a bot:Element ; rdfs:label "Paint & floor finish, L2 West"@en .
+ex:part_L2_E a bot:Element ; rdfs:label "Stud partitions, L2 East"@en .
+ex:duct_L2_E a bot:Element ; rdfs:label "Duct & conduit run, L2 East"@en .
+ex:board_L2_E a bot:Element ; rdfs:label "Drywall boarding, L2 East"@en .
+ex:fixture_L2_E a bot:Element ; rdfs:label "MEP fixtures, L2 East"@en .
+ex:finish_L2_E a bot:Element ; rdfs:label "Paint & floor finish, L2 East"@en .
+ex:part_L3_W a bot:Element ; rdfs:label "Stud partitions, L3 West"@en .
+ex:duct_L3_W a bot:Element ; rdfs:label "Duct & conduit run, L3 West"@en .
+ex:board_L3_W a bot:Element ; rdfs:label "Drywall boarding, L3 West"@en .
+ex:fixture_L3_W a bot:Element ; rdfs:label "MEP fixtures, L3 West"@en .
+ex:finish_L3_W a bot:Element ; rdfs:label "Paint & floor finish, L3 West"@en .
+ex:part_L3_E a bot:Element ; rdfs:label "Stud partitions, L3 East"@en .
+ex:duct_L3_E a bot:Element ; rdfs:label "Duct & conduit run, L3 East"@en .
+ex:board_L3_E a bot:Element ; rdfs:label "Drywall boarding, L3 East"@en .
+ex:fixture_L3_E a bot:Element ; rdfs:label "MEP fixtures, L3 East"@en .
+ex:finish_L3_E a bot:Element ; rdfs:label "Paint & floor finish, L3 East"@en .
+
+# --- WAGON TYPES (the train's consist) + planned crews ---
+ex:wagon_1 a takt:WagonType ;
+    rdfs:label "1 · Framing — metal stud partitions"@en ;
+    takt:trade "framing" .
+ex:wagon_2 a takt:WagonType ;
+    rdfs:label "2 · MEP rough-in — ducts & conduit"@en ;
+    takt:trade "mep-rough" .
+ex:wagon_3 a takt:WagonType ;
+    rdfs:label "3 · Drywall boarding"@en ;
+    takt:trade "drywall" .
+ex:wagon_4 a takt:WagonType ;
+    rdfs:label "4 · MEP fixtures & terminals"@en ;
+    takt:trade "mep-fix" .
+ex:wagon_5 a takt:WagonType ;
+    rdfs:label "5 · Paint & flooring"@en ;
+    takt:trade "finish" .
+
+ex:crew_1 a takt:Crew ; rdfs:label "SUB-01" .
+ex:crew_2 a takt:Crew ; rdfs:label "SUB-02" .
+ex:crew_3 a takt:Crew ; rdfs:label "SUB-03" .
+ex:crew_4 a takt:Crew ; rdfs:label "SUB-04" .
+ex:crew_5 a takt:Crew ; rdfs:label "SUB-05" .
+
+# =============================================================================
+# THE GRID — 6 zones x 5 wagons = 30 cells, flowline slot = position + wagon
+# =============================================================================
+ex:task_L1_W_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L1 West" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L1_W ;
+    takt:actsOn       ex:part_L1_W ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         1 ;
+    takt:hasSuccessorSameZone  ex:task_L1_W_w2 ;
+    takt:hasSuccessorSameWagon ex:task_L1_E_w1 .
+
+ex:task_L1_W_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L1 West" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L1_W ;
+    takt:actsOn       ex:duct_L1_W ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         2 ;
+    takt:hasSuccessorSameZone  ex:task_L1_W_w3 ;
+    takt:hasSuccessorSameWagon ex:task_L1_E_w2 .
+
+ex:task_L1_W_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L1 West" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L1_W ;
+    takt:actsOn       ex:board_L1_W ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         3 ;
+    takt:hasSuccessorSameZone  ex:task_L1_W_w4 ;
+    takt:hasSuccessorSameWagon ex:task_L1_E_w3 .
+
+ex:task_L1_W_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L1 West" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L1_W ;
+    takt:actsOn       ex:fixture_L1_W ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         4 ;
+    takt:hasSuccessorSameZone  ex:task_L1_W_w5 ;
+    takt:hasSuccessorSameWagon ex:task_L1_E_w4 .
+
+ex:task_L1_W_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L1 West" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L1_W ;
+    takt:actsOn       ex:finish_L1_W ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         5 ;
+    takt:hasSuccessorSameWagon ex:task_L1_E_w5 .
+
+ex:task_L1_E_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L1 East" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L1_E ;
+    takt:actsOn       ex:part_L1_E ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         2 ;
+    takt:hasSuccessorSameZone  ex:task_L1_E_w2 ;
+    takt:hasSuccessorSameWagon ex:task_L2_W_w1 .
+
+ex:task_L1_E_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L1 East" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L1_E ;
+    takt:actsOn       ex:duct_L1_E ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         3 ;
+    takt:hasSuccessorSameZone  ex:task_L1_E_w3 ;
+    takt:hasSuccessorSameWagon ex:task_L2_W_w2 .
+
+ex:task_L1_E_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L1 East" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L1_E ;
+    takt:actsOn       ex:board_L1_E ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         4 ;
+    takt:hasSuccessorSameZone  ex:task_L1_E_w4 ;
+    takt:hasSuccessorSameWagon ex:task_L2_W_w3 .
+
+ex:task_L1_E_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L1 East" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L1_E ;
+    takt:actsOn       ex:fixture_L1_E ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         5 ;
+    takt:hasSuccessorSameZone  ex:task_L1_E_w5 ;
+    takt:hasSuccessorSameWagon ex:task_L2_W_w4 .
+
+ex:task_L1_E_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L1 East" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L1_E ;
+    takt:actsOn       ex:finish_L1_E ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         6 ;
+    takt:hasSuccessorSameWagon ex:task_L2_W_w5 .
+
+ex:task_L2_W_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L2 West" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L2_W ;
+    takt:actsOn       ex:part_L2_W ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         3 ;
+    takt:hasSuccessorSameZone  ex:task_L2_W_w2 ;
+    takt:hasSuccessorSameWagon ex:task_L2_E_w1 .
+
+ex:task_L2_W_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L2 West" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L2_W ;
+    takt:actsOn       ex:duct_L2_W ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         4 ;
+    takt:hasSuccessorSameZone  ex:task_L2_W_w3 ;
+    takt:hasSuccessorSameWagon ex:task_L2_E_w2 .
+
+ex:task_L2_W_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L2 West" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L2_W ;
+    takt:actsOn       ex:board_L2_W ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         5 ;
+    takt:hasSuccessorSameZone  ex:task_L2_W_w4 ;
+    takt:hasSuccessorSameWagon ex:task_L2_E_w3 .
+
+ex:task_L2_W_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L2 West" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L2_W ;
+    takt:actsOn       ex:fixture_L2_W ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         6 ;
+    takt:hasSuccessorSameZone  ex:task_L2_W_w5 ;
+    takt:hasSuccessorSameWagon ex:task_L2_E_w4 .
+
+ex:task_L2_W_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L2 West" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L2_W ;
+    takt:actsOn       ex:finish_L2_W ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         7 ;
+    takt:hasSuccessorSameWagon ex:task_L2_E_w5 .
+
+ex:task_L2_E_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L2 East" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L2_E ;
+    takt:actsOn       ex:part_L2_E ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         4 ;
+    takt:hasSuccessorSameZone  ex:task_L2_E_w2 ;
+    takt:hasSuccessorSameWagon ex:task_L3_W_w1 .
+
+ex:task_L2_E_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L2 East" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L2_E ;
+    takt:actsOn       ex:duct_L2_E ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         5 ;
+    takt:hasSuccessorSameZone  ex:task_L2_E_w3 ;
+    takt:hasSuccessorSameWagon ex:task_L3_W_w2 .
+
+ex:task_L2_E_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L2 East" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L2_E ;
+    takt:actsOn       ex:board_L2_E ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         6 ;
+    takt:hasSuccessorSameZone  ex:task_L2_E_w4 ;
+    takt:hasSuccessorSameWagon ex:task_L3_W_w3 .
+
+ex:task_L2_E_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L2 East" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L2_E ;
+    takt:actsOn       ex:fixture_L2_E ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         7 ;
+    takt:hasSuccessorSameZone  ex:task_L2_E_w5 ;
+    takt:hasSuccessorSameWagon ex:task_L3_W_w4 .
+
+ex:task_L2_E_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L2 East" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L2_E ;
+    takt:actsOn       ex:finish_L2_E ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         8 ;
+    takt:hasSuccessorSameWagon ex:task_L3_W_w5 .
+
+ex:task_L3_W_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L3 West" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L3_W ;
+    takt:actsOn       ex:part_L3_W ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         5 ;
+    takt:hasSuccessorSameZone  ex:task_L3_W_w2 ;
+    takt:hasSuccessorSameWagon ex:task_L3_E_w1 .
+
+ex:task_L3_W_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L3 West" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L3_W ;
+    takt:actsOn       ex:duct_L3_W ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         6 ;
+    takt:hasSuccessorSameZone  ex:task_L3_W_w3 ;
+    takt:hasSuccessorSameWagon ex:task_L3_E_w2 .
+
+ex:task_L3_W_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L3 West" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L3_W ;
+    takt:actsOn       ex:board_L3_W ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         7 ;
+    takt:hasSuccessorSameZone  ex:task_L3_W_w4 ;
+    takt:hasSuccessorSameWagon ex:task_L3_E_w3 .
+
+ex:task_L3_W_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L3 West" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L3_W ;
+    takt:actsOn       ex:fixture_L3_W ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         8 ;
+    takt:hasSuccessorSameZone  ex:task_L3_W_w5 ;
+    takt:hasSuccessorSameWagon ex:task_L3_E_w4 .
+
+ex:task_L3_W_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L3 West" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L3_W ;
+    takt:actsOn       ex:finish_L3_W ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         9 ;
+    takt:hasSuccessorSameWagon ex:task_L3_E_w5 .
+
+ex:task_L3_E_w1 a takt:TaktTask ;
+    rdfs:label "1 @ L3 East" ;
+    takt:instantiates ex:wagon_1 ;
+    takt:performedIn  ex:zone_L3_E ;
+    takt:actsOn       ex:part_L3_E ;
+    takt:performedBy  ex:crew_1 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         6 ;
+    takt:hasSuccessorSameZone  ex:task_L3_E_w2 .
+
+ex:task_L3_E_w2 a takt:TaktTask ;
+    rdfs:label "2 @ L3 East" ;
+    takt:instantiates ex:wagon_2 ;
+    takt:performedIn  ex:zone_L3_E ;
+    takt:actsOn       ex:duct_L3_E ;
+    takt:performedBy  ex:crew_2 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         7 ;
+    takt:hasSuccessorSameZone  ex:task_L3_E_w3 .
+
+ex:task_L3_E_w3 a takt:TaktTask ;
+    rdfs:label "3 @ L3 East" ;
+    takt:instantiates ex:wagon_3 ;
+    takt:performedIn  ex:zone_L3_E ;
+    takt:actsOn       ex:board_L3_E ;
+    takt:performedBy  ex:crew_3 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         8 ;
+    takt:hasSuccessorSameZone  ex:task_L3_E_w4 .
+
+ex:task_L3_E_w4 a takt:TaktTask ;
+    rdfs:label "4 @ L3 East" ;
+    takt:instantiates ex:wagon_4 ;
+    takt:performedIn  ex:zone_L3_E ;
+    takt:actsOn       ex:fixture_L3_E ;
+    takt:performedBy  ex:crew_4 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         9 ;
+    takt:hasSuccessorSameZone  ex:task_L3_E_w5 .
+
+ex:task_L3_E_w5 a takt:TaktTask ;
+    rdfs:label "5 @ L3 East" ;
+    takt:instantiates ex:wagon_5 ;
+    takt:performedIn  ex:zone_L3_E ;
+    takt:actsOn       ex:finish_L3_E ;
+    takt:performedBy  ex:crew_5 ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         10 ;
+    takt:hasSuccessorSameZone  ex:task_handover .
+
+# Handover milestone — the last cell of the grid.
+ex:task_handover a takt:TaktTask ;
+    rdfs:label "Handover — L3 East" ;
+    takt:performedIn ex:zone_L3_E ;
+    takt:partOfProcess ex:process_fitout ;
+    takt:slot         11 ;
+    takt:isMilestone  true .
+</script>
+</body>
+</html>
