@@ -3,7 +3,9 @@
 A small, **fully anonymized** slice of a real takt production plan
 (*Produktionstidplan*), kept here as a concrete pattern to discuss the
 [ontology](../ontology/takt.ttl) against. It is the companion *source* for the
-worked A-Box in [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl).
+worked A-Box in [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl); for
+the multi-zone **train** (both successor readings, buffers), see
+[`takt-train-demo.ttl`](takt-train-demo.ttl).
 
 Files:
 
@@ -58,8 +60,8 @@ be metered against — a downstream concern, not part of the takt schema.
 ## 2. The takt zones (building B)
 
 Six **`takt:TaktZone`** instances — coordinate is `building : floor : sub-zone`.
-Areas are illustrative (the ontology derives real areas from TopologicPy `Cell`
-geometry via `top:area`).
+Areas are illustrative (real areas are TopologicPy-computed quantities carried as
+TGraph dictionary values — see [docs/05-tgraph-pairing.md](../docs/05-tgraph-pairing.md)).
 
 | Zone | Floor | Sub-zone | Area m² *(illustrative)* |
 |:----:|:-----:|:--------:|:----:|
@@ -129,17 +131,22 @@ WagonType  5.1  ──instantiates──▶  TaktTask
                                      ├─ performedIn  ▶ TaktZone  B5:1
                                      ├─ actsOn       ▶ Element   (the operand → quantity)
                                      ├─ performedBy  ▶ Crew      SUB-03
-                                     ├─ hasTaktTime  ▶ TaktTime  (slot T04, taktDuration P1W)
-                                     └─ hasSuccessor ▶ TaktTask  5.2 @ B5:1   (the train edge)
+                                     ├─ slot         ▶ 4         (T04; the plan carries taktDuration P7D + planStart)
+                                     └─ hasSuccessorSameZone ▶ TaktTask  5.2 @ B5:1   (the train edge)
 ```
 
-- **The chain *is* the train.** `hasSuccessor` walks down a zone column (5.1 → 5.2 → 5.3 …).
-- **Duration is a consumer concern, not in the schema:** a consumer reads `top:area` off
-  `actsOn` and applies its own rate/crew model to check the work fits the one-week beat
+- **The chain *is* the train.** `hasSuccessorSameZone` walks down a zone column
+  (5.1 → 5.2 → 5.3 …); its sibling `hasSuccessorSameWagon` tracks one wagon
+  zone-to-zone. Both specialize the reading-agnostic `hasSuccessor`.
+- **Duration is a consumer concern, not in the schema:** a consumer reads the operand's
+  area off `actsOn` (a TGraph dictionary value — see
+  [docs/05-tgraph-pairing.md](../docs/05-tgraph-pairing.md)) and applies its own
+  rate/crew model to check the work fits the one-week beat
   (see [ADR-10](../docs/03-decisions.md)). The structural mapping is what the A-Box
   [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl) shows.
-- **Buffers** (the blanks) are first-class in takt; whether to model them explicitly is an
-  open question for [`docs/03-decisions.md`](../docs/03-decisions.md).
+- **Buffers** (the blanks) are first-class in takt — and, since v0.5.0, in the
+  vocabulary: an empty cell is a `TaktTask` with `takt:isBuffer true`
+  (see [ADR-16](../docs/03-decisions.md) and [`takt-train-demo.ttl`](takt-train-demo.ttl)).
 
 ### Worth discussing
 

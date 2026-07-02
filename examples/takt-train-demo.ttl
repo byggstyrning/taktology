@@ -1,0 +1,123 @@
+# =============================================================================
+# Worked A-Box — the TRAIN: two wagons flowing through two zones over three takts
+# Conforms to ontology/takt.ttl v0.5.0.
+#
+# This is the example takt-flowline-demo-b5-1.ttl deliberately stops short of:
+# the flow BETWEEN zones. A 2-wagon train (drywall 5.1 -> screed 6.1) runs through
+# two adjacent zones (B5:1 -> C5), one takt apart, with a capacity buffer at the
+# tail. It exercises BOTH successor readings at once, on one plan:
+#
+#            slot 1        slot 2        slot 3
+#   B5:1     5.1@B5:1      6.1@B5:1      (buffer)
+#   C5                     5.1@C5        6.1@C5
+#
+#   Reading A (hasSuccessorSameZone, "location flow"): the convoy through a zone —
+#       5.1@B5:1 -> 6.1@B5:1 -> buffer@B5:1     and     5.1@C5 -> 6.1@C5
+#   Reading B (hasSuccessorSameWagon, "trade flow"): a wagon across zones —
+#       5.1@B5:1 -> 5.1@C5                      and     6.1@B5:1 -> 6.1@C5
+#
+# Both are subproperties of takt:hasSuccessor, so a reader that only knows the
+# generic property still sees one coherent partial order; a reader that knows the
+# subproperties can tell location flow from trade flow (Lehtovaara et al. 2021).
+#
+# Competency questions this file answers (runnable versions in queries/):
+#   - which wagon occupies zone Z at slot t?          (performedIn + slot)
+#   - what is the train order through a zone?         (hasSuccessorSameZone path)
+#   - where does a trade go next?                     (hasSuccessorSameWagon path)
+#   - do consecutive same-wagon tasks use adjacent    (hasSuccessorSameWagon +
+#     zones?                                            bot:adjacentZone)
+#   - where are the buffers?                          (isBuffer true)
+# =============================================================================
+
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ex:   <https://w3id.org/taktology/examples/train#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# --- THE PLAN ----------------------------------------------------------------
+ex:plan a takt:TaktGraph ;
+    rdfs:label "Train demo plan"@en ;
+    takt:taktDuration "P7D"^^xsd:duration ;
+    takt:planStart    "2024-03-04"^^xsd:date ;
+    dtc:hasProcess ex:t_51_B51 , ex:t_61_B51 , ex:t_buf_B51 , ex:t_51_C5 , ex:t_61_C5 .
+
+# --- WAGON TYPES (the train's consist) -----------------------------------------
+ex:wagon_5_1 a takt:WagonType ;
+    rdfs:label "Drywall — first-side boarding"@en ;
+    takt:trade "drywall" .
+
+ex:wagon_6_1 a takt:WagonType ;
+    rdfs:label "Screed"@en ;
+    takt:trade "flooring" .
+
+# --- CREWS ---------------------------------------------------------------------
+ex:crew_SUB_03 a takt:Crew ; rdfs:label "SUB-03" .
+ex:crew_SUB_07 a takt:Crew ; rdfs:label "SUB-07" .
+
+# --- ZONES (adjacent — the track the train runs on) ------------------------------
+ex:zone_B5_1 a takt:TaktZone ;
+    rdfs:label "B5:1 (PLAN 5)" ;
+    bot:adjacentZone ex:zone_C5 ;
+    bot:containsElement ex:wall_B5_1 , ex:slab_B5_1 .
+
+ex:zone_C5 a takt:TaktZone ;
+    rdfs:label "C5 (PLAN 5)" ;
+    bot:containsElement ex:wall_C5 , ex:slab_C5 .
+
+# --- ELEMENTS (operands; quantities travel via TGraph dictionaries) --------------
+ex:wall_B5_1 a bot:Element ; rdfs:label "Gypsum walls, B5:1"@en .
+ex:slab_B5_1 a bot:Element ; rdfs:label "Floor slab, B5:1"@en .
+ex:wall_C5   a bot:Element ; rdfs:label "Gypsum walls, C5"@en .
+ex:slab_C5   a bot:Element ; rdfs:label "Floor slab, C5"@en .
+
+# =============================================================================
+# THE GRID — five cells: 2 wagons x 2 zones + 1 buffer
+# =============================================================================
+
+# slot 1 — the train's head enters B5:1
+ex:t_51_B51 a takt:TaktTask ;
+    rdfs:label "5.1 @ B5:1" ;
+    takt:instantiates ex:wagon_5_1 ;
+    takt:performedIn  ex:zone_B5_1 ;
+    takt:actsOn       ex:wall_B5_1 ;
+    takt:performedBy  ex:crew_SUB_03 ;
+    takt:slot 1 ;
+    takt:hasSuccessorSameZone  ex:t_61_B51 ;   # Reading A: next wagon into B5:1
+    takt:hasSuccessorSameWagon ex:t_51_C5 .    # Reading B: same wagon on to C5
+
+# slot 2 — the convoy advances: screed into B5:1, drywall into C5
+ex:t_61_B51 a takt:TaktTask ;
+    rdfs:label "6.1 @ B5:1" ;
+    takt:instantiates ex:wagon_6_1 ;
+    takt:performedIn  ex:zone_B5_1 ;
+    takt:actsOn       ex:slab_B5_1 ;
+    takt:performedBy  ex:crew_SUB_07 ;
+    takt:slot 2 ;
+    takt:hasSuccessorSameZone  ex:t_buf_B51 ;
+    takt:hasSuccessorSameWagon ex:t_61_C5 .
+
+ex:t_51_C5 a takt:TaktTask ;
+    rdfs:label "5.1 @ C5" ;
+    takt:instantiates ex:wagon_5_1 ;
+    takt:performedIn  ex:zone_C5 ;
+    takt:actsOn       ex:wall_C5 ;
+    takt:performedBy  ex:crew_SUB_03 ;
+    takt:slot 2 ;
+    takt:hasSuccessorSameZone ex:t_61_C5 .
+
+# slot 3 — screed finishes in C5; B5:1 holds a capacity buffer (an empty wagon)
+ex:t_61_C5 a takt:TaktTask ;
+    rdfs:label "6.1 @ C5" ;
+    takt:instantiates ex:wagon_6_1 ;
+    takt:performedIn  ex:zone_C5 ;
+    takt:actsOn       ex:slab_C5 ;
+    takt:performedBy  ex:crew_SUB_07 ;
+    takt:slot 3 .
+
+ex:t_buf_B51 a takt:TaktTask ;
+    rdfs:label "buffer @ B5:1" ;
+    takt:performedIn ex:zone_B5_1 ;
+    takt:slot 3 ;
+    takt:isBuffer true .            # a capacity buffer instantiates no wagon type

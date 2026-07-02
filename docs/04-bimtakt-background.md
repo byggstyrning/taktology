@@ -41,12 +41,14 @@ sequence.
 
 ## The through-line to this repo
 
-The paper's `TaktZone` / project-structure → **`takt:TaktZone` ⊑ `top:FunctionalZone`**
-(geometry). Its activity-structure → **`takt:WagonType` + `takt:TaktTask`**
-(predecessor = `hasSuccessor`). Its quantity/duration formula (`actsOn` quantity × rate
-÷ crew) sits **outside** this schema — a downstream consumer concern: taktology holds
-the structural graph and the element geometry (`top:area`), and a consumer supplies its
-own rate/crew model (see [ADR-10](03-decisions.md)).
+The paper's `TaktZone` / project-structure → **`takt:TaktZone` ⊑ `bot:Zone`**
+(topology; geometry computed by TopologicPy). Its activity-structure →
+**`takt:WagonType` + `takt:TaktTask`** (predecessor = `hasSuccessor`). Its
+quantity/duration formula (`actsOn` quantity × rate ÷ crew) sits **outside** this
+schema — a downstream consumer concern: taktology holds the structural graph, and the
+element quantities travel as TGraph dictionary values / `top:Quantity` records (see
+[05-tgraph-pairing.md](05-tgraph-pairing.md)); a consumer supplies its own rate/crew
+model (see [ADR-10](03-decisions.md)).
 
 What the paper leaves as open work (the reference DB, the matching algorithm) stays
 out of scope here by design — this repo is the **interchange model** for the result,

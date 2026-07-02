@@ -1,30 +1,47 @@
 # =============================================================================
 # Worked A-Box — wagon 5.1 (Drywall — first-side boarding) in takt zone B5:1
 # Source: anonymized takt-flowline-demo fixture (wagon 5.1, zone B5:1).
-# Conforms to ontology/takt.ttl v0.4.1 (minimal core; TaktZone ⊑ top:FunctionalZone
-# [⊑ bot:Zone] + dtc:AsPlannedWorkingZone).
+# Conforms to ontology/takt.ttl v0.5.0 (minimal core; TaktZone ⊑ bot:Zone +
+# dtc:AsPlannedWorkingZone; the plan itself is a takt:TaktGraph).
 #
-# Exercises every term in the core, plus the BOT topology a takt zone carries:
-#   bot:containsElement (zone inventory), bot:adjacentZone (flow), dtc:isLocatedIn (building).
-# Calendar dates reuse DTC (dtc:startTime / dtc:endTime); zone/element area from TopologicPy.
+# Exercises the single-zone core, plus the BOT topology a takt zone carries:
+#   bot:containsElement (zone inventory), bot:adjacentZone (flow),
+#   bot:containsZone (storey -> zone placement).
+# For the train flowing BETWEEN zones (both successor readings, buffers), see
+# takt-train-demo.ttl. Planned calendar dates are NOT asserted — they derive:
+#   task start = planStart + (slot - 1) x taktDuration  (2024-01-01 + 3 weeks
+#   = 2024-01-22 for slot 4 here). dtc:startTime/endTime are AS-PERFORMED
+#   observations in DTC — never use them for planned dates.
 #
-# Validate:  riot --validate ../ontology/takt.ttl takt-flowline-demo-b5-1.ttl   (Apache Jena)
-# Values marked (illustrative) are placeholders (calendar dates).
+# Element quantities (area/volume) are TopologicPy TGraph dictionary values, not
+# core takt: terms — see docs/05-tgraph-pairing.md for how they travel.
+#
+# Validate:  python scripts/validate.py       (parse + SHACL + term consistency)
 # =============================================================================
 
 @prefix takt: <https://w3id.org/taktology#> .
-@prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology#> .
-@prefix top:  <https://wassimj.github.io/topologicpy/ontology/topologicpy#> .
+@prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#> .
 @prefix bot:  <https://w3id.org/bot#> .
 @prefix ex:   <https://w3id.org/taktology/examples/demo#> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 # -----------------------------------------------------------------------------
+# THE PLAN — a takt:TaktGraph: the grid itself. Carries the plan-wide beat and
+# the calendar anchor; membership is DTC's own hasProcess.
+# -----------------------------------------------------------------------------
+ex:plan_demo a takt:TaktGraph ;
+    rdfs:label "Takt-flowline demo plan"@en ;
+    takt:taktDuration "P7D"^^xsd:duration ;   # one-week takt (XSD has no 'P1W')
+    takt:planStart    "2024-01-01"^^xsd:date ;
+    dtc:hasProcess    ex:task_5_1_B5_1 , ex:task_5_2_B5_1 .
+
+# -----------------------------------------------------------------------------
 # WAGON TYPE — the reusable template (activity-structure row, BIMTakt Bild 5)
 # -----------------------------------------------------------------------------
 ex:wagon_5_1 a takt:WagonType ;
-    rdfs:label "Drywall — first-side boarding"@en .
+    rdfs:label "Drywall — first-side boarding"@en ;
+    takt:trade "drywall" .
 
 # -----------------------------------------------------------------------------
 # CREW — the (anonymized) subcontractor code on the row
@@ -34,68 +51,58 @@ ex:crew_SUB_03 a takt:Crew ;
     rdfs:label "SUB-03" .
 
 # -----------------------------------------------------------------------------
-# TAKT ZONE — a takt:TaktZone, hence a top:FunctionalZone AND a bot:Zone AND a
-# dtc:AsPlannedWorkingZone. Topology links use BOT; geometry comes from TopologicPy.
+# TAKT ZONE — a takt:TaktZone, hence a bot:Zone AND a dtc:AsPlannedWorkingZone.
+# Topology links use BOT; geometry/quantities come from TopologicPy (TGraph).
 # -----------------------------------------------------------------------------
 ex:zone_B5_1 a takt:TaktZone ;
     rdfs:label "B5:1 (PLAN 5)" ;
-    top:area   184.0 ;                       # m²  (illustrative — from TopologicPy Cell geometry)
     bot:containsElement ex:gipsvagg_B5_1 ,   # the drywall this task acts on
                         ex:slab_B5_1 ;       # a slab another trade (screed) acts on
-    bot:adjacentZone    ex:zone_C5 ;         # flow / handoff graph — unlocked by bot:Zone (Option B)
-    dtc:isLocatedIn     ex:storey_plan5 .    # building topology: the storey it sits in
+    bot:adjacentZone    ex:zone_C5 .         # flow / handoff graph — from bot:Zone
 
 ex:zone_C5 a takt:TaktZone ;                 # neighbour stub (for the adjacency edge)
     rdfs:label "C5 (PLAN 5)" .
 
-ex:storey_plan5 a bot:Storey ;               # bot:Storey ⊑ bot:Zone — valid dtc:isLocatedIn target
-    rdfs:label "PLAN 5" .
+ex:storey_plan5 a bot:Storey ;               # bot:Storey ⊑ bot:Zone
+    rdfs:label "PLAN 5" ;
+    bot:containsZone ex:zone_B5_1 ,          # BOT-native zone nesting places the
+                     ex:zone_C5 .            # takt zones in their storey
 
 # Two elements in the SAME zone, owned by DIFFERENT trades — this is why takt:actsOn
 # (the operand) is a distinct link: each task reads its own element, not the zone total.
-ex:gipsvagg_B5_1 a top:Element ;             # top:Element ⊑ bot:Element
-    rdfs:label "Gypsum wall set, B5:1"@en ;
-    top:area 184.0 .                         # m²  (TopologicPy Cell geometry)
+ex:gipsvagg_B5_1 a bot:Element ;
+    rdfs:label "Gypsum wall set, B5:1"@en .  # area travels as a TGraph dictionary value
 
-ex:slab_B5_1 a top:Element ;                 # acted on by a different trade (screed), not wagon 5.1
-    rdfs:label "Floor slab, B5:1"@en ;
-    top:area 95.0 .
+ex:slab_B5_1 a bot:Element ;                 # acted on by a different trade (screed), not wagon 5.1
+    rdfs:label "Floor slab, B5:1"@en .
 
 # -----------------------------------------------------------------------------
-# TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask = dtc:WorkPackage
+# TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask ⊑ dtc:AsPlannedProcess
 # -----------------------------------------------------------------------------
 ex:task_5_1_B5_1 a takt:TaktTask ;
     rdfs:label "5.1 @ B5:1" ;
-    takt:instantiates ex:wagon_5_1 ;        # -> template
-    takt:performedIn  ex:zone_B5_1 ;        # WHERE  (location / work area = space)
-    takt:partOfProcess ex:process_buildingB ; # WHICH PROCESS (Ljung 2026 TBS: the space×time×responsibility cell)
-    takt:actsOn       ex:gipsvagg_B5_1 ;    # WHAT   (operand — drives the quantity)
+    takt:instantiates ex:wagon_5_1 ;          # -> template
+    takt:performedIn  ex:zone_B5_1 ;          # WHERE  (location / work area = space)
+    takt:partOfProcess ex:process_buildingB ; # WHICH PROCESS (Ljung 2026 TBS cell)
+    takt:actsOn       ex:gipsvagg_B5_1 ;      # WHAT   (operand — drives the quantity)
     takt:performedBy  ex:crew_SUB_03 ;
-    takt:hasTaktTime  ex:time_5_1_B5_1 ;
-    takt:hasSuccessor ex:task_5_2_B5_1 ;    # the train edge (the chain IS the train)
-    takt:isMilestone  false .
+    takt:slot         4 ;                     # takt week T04 — matches the demo flowline
+    takt:hasSuccessor ex:task_5_2_B5_1 ;      # the train edge (generic; see takt-train-demo.ttl for the reading-specific subproperties)
+    takt:isMilestone  false ;
+    takt:isBuffer     false .
 
 # -----------------------------------------------------------------------------
-# TAKT TIME — taktDuration is the fixed beat (P1W); takt:slot positions the task in
-# the plan grid. Calendar dates reuse DTC (dtc:startTime / dtc:endTime).
-# -----------------------------------------------------------------------------
-ex:time_5_1_B5_1 a takt:TaktTime ;
-    takt:slot         4 ;               # takt week T04 — matches the demo flowline
-    takt:taktDuration "P1W"^^xsd:duration ;
-    dtc:startTime     "2024-01-22T07:00:00"^^xsd:dateTime ;   # (illustrative) reuse DTC for dates
-    dtc:endTime       "2024-01-26T16:00:00"^^xsd:dateTime .   # (illustrative)
-
-# -----------------------------------------------------------------------------
-# Successor stub — just enough for the hasSuccessor edge to resolve.
+# Successor stub — just enough for the convoy edge to resolve.
 # -----------------------------------------------------------------------------
 ex:task_5_2_B5_1 a takt:TaktTask ;
     rdfs:label "5.2 @ B5:1" ;
-    takt:performedIn ex:zone_B5_1 .
+    takt:performedIn ex:zone_B5_1 ;
+    takt:slot 5 .
 
 # -----------------------------------------------------------------------------
 # CONSTRUCTION PROCESS — the on-site production process the task is part of.
 # Reuses DTC's process backbone (dtc:Process); per Ljung (2026), zone (space) ×
-# takt (time) × process (responsibility) bound on one task is a TBS cell.
+# slot (time) × process bound on one task is a TBS cell.
 # -----------------------------------------------------------------------------
 ex:process_buildingB a dtc:Process ;
     rdfs:label "Building B production process"@en .

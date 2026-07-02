@@ -1,0 +1,86 @@
+{
+  "_comment": "Upstream ontology snapshots taktology v0.5.0 was verified against. scripts/validate.py --online refetches each url and reports drift (sha256 mismatch or missing terms). A hash mismatch is a signal to re-verify, not necessarily a break.",
+  "verified": "2026-07-01",
+  "upstreams": {
+    "top": {
+      "url": "https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl",
+      "canonical_iri": "http://w3id.org/topologicpy",
+      "namespace": "http://w3id.org/topologicpy#",
+      "version": "0.2.0",
+      "modified": "2026-06-27",
+      "license": "AGPL-3.0 (ontology file; referenced only, not imported)",
+      "sha256": "cc1da03dc2ef7dd61aad5d6a6cfd4cc939ec513315dd74e6b2fa0eeb2d5b3cab",
+      "terms_relied_on": [
+        "top:KnowledgeGraph",
+        "top:Zone",
+        "top:Graph",
+        "top:Node",
+        "top:Relationship",
+        "top:hasNode",
+        "top:hasRelationship",
+        "top:hasPredicate"
+      ],
+      "known_divergence": "TopologicPy's in-code vocabulary (Ontology.py DATA_PROPERTIES) declares top:area/top:volume and keeps top:FunctionalZone as a compatibility alias; the published TTL declares none of these. The published TTL is normative for taktology's T-Box; TGraph-emitted instance data may contain the in-code terms."
+    },
+    "dtc": {
+      "url": "https://dtc-ontology.cms.ed.tum.de/ontology/v2/ontology.ttl",
+      "namespace": "https://dtc-ontology.cms.ed.tum.de/ontology/v2#",
+      "version": "v2",
+      "modified": "2024-07-31",
+      "imports": [
+        "https://w3id.org/bot-0.3.2",
+        "http://www.opengis.net/ont/geosparql/1.1",
+        "https://pi.pauwel.be/voc/buildingelement"
+      ],
+      "sha256": "eafcba67b4daad289eb811126a615f23311cd6116d05bbd3820d6f8cd2161429",
+      "terms_relied_on": [
+        "dtc:AsPlannedProcess",
+        "dtc:AsPlannedWorkingZone",
+        "dtc:AsPlannedWorkerCrew",
+        "dtc:Process",
+        "dtc:ConstructionSchedule",
+        "dtc:isPerformedIn",
+        "dtc:hasTarget",
+        "dtc:hasProcess",
+        "dtc:alignsWithZone",
+        "dtc:hasResourceAssignment",
+        "dtc:requiresResource",
+        "dtc:requiresProcess",
+        "dtc:isDecomposedInto",
+        "dtc:hasChildProcess"
+      ],
+      "note": "v1 (\u2026/ontology#) still serves at the base IRI and differs structurally (has WorkPackage/hasActivity/isLocatedIn; hasTarget domain Action-or-Task). taktology v0.4.x aligned to v1; v0.5.0+ aligns to v2 (ADR-12)."
+    },
+    "bot": {
+      "url": "https://w3id.org/bot",
+      "namespace": "https://w3id.org/bot#",
+      "version_pinned_via_dtc": "0.3.2",
+      "terms_relied_on": [
+        "bot:Zone",
+        "bot:Element",
+        "bot:Storey",
+        "bot:adjacentZone",
+        "bot:containsElement",
+        "bot:containsZone"
+      ]
+    },
+    "ifc": {
+      "url": "https://standards.buildingsmart.org/IFC/DEV/IFC4/ADD2_TC1/OWL/ontology.ttl",
+      "namespace": "https://standards.buildingsmart.org/IFC/DEV/IFC4/ADD2_TC1/OWL#",
+      "version": "IFC4 ADD2 TC1 (the published ifcOWL; no official IFC4.3 ifcOWL exists as of 2026-07-01)",
+      "sha256": "8b5a32edff0b4f794f057591c1e56da042221c7e647d92a77cdf7de132cfd9d1",
+      "terms_relied_on": [
+        "ifc:IfcSpatialZone",
+        "ifc:IfcTaskType",
+        "ifc:IfcTask",
+        "ifc:IfcCrewResource",
+        "ifc:IfcWorkSchedule",
+        "ifc:IfcRelDefinesByType",
+        "ifc:IfcRelAssignsToProduct",
+        "ifc:IfcRelAssignsToProcess",
+        "ifc:IfcRelSequence",
+        "ifc:IfcRelNests"
+      ]
+    }
+  }
+}
