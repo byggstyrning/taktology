@@ -10,8 +10,8 @@ the same day with a sixth **Chalmers** cluster (BIM-takt, breakdown structures, 
 - **Decisions the corpus feeds:** [decisions/](decisions/)
 - **Raw discovery runs:** [discoveries/](discoveries/) (ephemeral until promoted)
 
-> **Verification status.** Every source has a real, checked URL. 38/48 are fully
-> verified; 10 are `partial` (a specific field — DOI, author list, venue, or version
+> **Verification status.** Every source has a real, checked URL. 40/48 are fully
+> verified; 8 are `partial` (a specific field — DOI, author list, venue, or version
 > — still needs a manual confirm; flagged per row and in `manifest.json`). No PDFs
 > are committed — open-access mirrors are linked where the publisher copy is paywalled.
 
@@ -62,13 +62,13 @@ Legend — status: `adopted` (shapes the design, cited in a decision) · `influe
 | `lbd-cg-bot-spec` | BOT specification / namespace (w3id.org/bot) | — | adopted | ✔ |
 | `bsi-ifc43-process-extension` | IFC 4.3 IfcProcessExtension (IfcTask, IfcRelSequence…) | 2024 | adopted | ✔ |
 | `jabi-2018-topologic` | Topologic: spatial & topological modelling toolkit | 2018 | adopted | ✔ |
-| `topologicpy-ontology` | TopologicPy ontology (`top:`) — the substrate | 2026 | adopted | ◑ |
+| `topologicpy-ontology` | TopologicPy ontology (`top:`) — the substrate | 2026 | adopted | ✔ |
 | `pauwels-terkaj-2016-ifcowl` | EXPRESS to OWL / ifcOWL | 2016 | influenced | ✔ |
 | `schlenger-2025-dtc-reference-architecture` | DTC reference architecture & ontology framework | 2025 | influenced | ◑ |
 | `buildingsmart-ifcowl` | Official ifcOWL artifact page | — | reference | ✔ |
 | `zhu-2025-ifc-graph` | Internal structure of IFC-Graph (LPG) | 2025 | reference | ◑ |
 | `schlenger-2024-process-representation` | Advanced Process Representation (schedule↔IFC) | 2024 | candidate | ✔ |
-| `dtc-ontology-spec` | Digital Twin Construction (DTC) Ontology spec | 2023 | candidate | ◑ |
+| `dtc-ontology-spec` | Digital Twin Construction (DTC) Ontology spec | 2023 | adopted | ✔ |
 
 ### Cluster E — Implementation, case studies & control
 | id | source | yr | status | v |
@@ -238,3 +238,16 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
   `disney-2023-total-bim-onsite-itcon` is co-authored by Byggstyrning (this repo's org),
   pinning down the deployment context. Follow-ups: confirm OA/title for the two 2024
   Ljung papers; mine Bosch-Sijtsema's profile; consider ISO 81346 coding for zone IDs.
+- **v0.5.0 alignment re-verification — 2026-07-01.** Both upstream substrates re-read
+  and pinned (`ontology/alignments.lock.json` created, sha256 per upstream): **`top:`
+  v0.2.0** read (canonical IRI `http://w3id.org/topologicpy`, modified 2026-06-27; new
+  graph layer incl. `top:KnowledgeGraph`; the published TTL declares no FunctionalZone
+  and no `top:area`/`top:volume`) and **DTC v2** read + adopted (distinct namespace
+  `…/ontology/v2#`, modified 2024-07-31; drops `WorkPackage` — docs ADR-12). Corpus
+  rows `topologicpy-ontology` and `dtc-ontology-spec` flipped to adopted ✔. Gap #1's
+  open follow-up (confirm DTC version) is thereby executed; the Schlenger term
+  extraction stays deferred. The ontology's v0.5.0 additions — `TaktGraph`, `isBuffer`,
+  `trade`, the Reading A/B successor subproperties — are grounded in existing corpus
+  sources (`topologicpy-ontology`, `frandson-2015-lbms-vs-takt`,
+  `binninger-2017-technical-takt`, `becker-tschickardt-2023-bimtakt`,
+  `lehtovaara-2021-flow-cme`, `dlouhy-2016-three-level`); no new sources were needed.

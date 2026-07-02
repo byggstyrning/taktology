@@ -371,13 +371,13 @@
       "authors": "Schlenger, J.; Yeung, T.; Bus, N.; Sacks, R.; Borrmann, A.; et al.",
       "year": 2023,
       "venue": "TU München / BIM2TWIN (EU H2020)",
-      "url": "https://dtc-ontology.cms.ed.tum.de/ontology/",
-      "oa_url": "https://dtc-ontology.cms.ed.tum.de/ontology/ontology.ttl",
+      "url": "https://dtc-ontology.cms.ed.tum.de/ontology/v2/",
+      "oa_url": "https://dtc-ontology.cms.ed.tum.de/ontology/v2/ontology.ttl",
       "access": "open",
       "cluster": "ifc-ontology-graph",
       "status": "adopted",
-      "verified": "partial",
-      "note": "ADOPTED into takt.ttl v0.3.0 as the process/zone/resource backbone (TaktTask<=WorkPackage, TaktZone<=AsPlannedWorkingZone, Crew<=AsPlannedWorkerCrew, performedIn<=isPerformedIn, actsOn<=hasTarget). Base IRI https://dtc-ontology.cms.ed.tum.de/ontology# ; imports BOT 0.3.2 + BEO + GeoSPARQL — all confirmed by reading the TTL on 2026-06-23. VERSION caveat: a v2 exists at /ontology/v2/; terms above read from the v1 TTL."
+      "verified": true,
+      "note": "ADOPTED — taktology v0.5.0 aligns to DTC v2 (docs ADR-12; supersedes the v0.3.x-v0.4.x v1 alignment). VERSION RESOLVED + VERIFIED FULL 2026-07-01 by reading both published TTLs: v1 (namespace .../ontology#, modified 2023-11-00) and v2 (namespace .../ontology/v2#, modified 2024-07-31; imports BOT 0.3.2 + GeoSPARQL 1.1 + BuildingElement). v2 drops WorkPackage/Activity/Task/hasActivity/isLocatedIn and restructures the backbone as Process -> AsPlannedProcess/AsPerformedProcess. v0.5.0 parents: TaktTask<=AsPlannedProcess, TaktZone<=AsPlannedWorkingZone, Crew<=AsPlannedWorkerCrew, TaktGraph<=ConstructionSchedule, performedIn<=isPerformedIn, actsOn<=hasTarget. Pinned with sha256 in ontology/alignments.lock.json."
     },
     {
       "id": "jabi-2018-topologic",
@@ -399,13 +399,13 @@
       "authors": "Jabi, W. (TopologicPy project)",
       "year": 2026,
       "venue": "Software documentation / OWL artifact",
-      "url": "https://topologicpy.readthedocs.io",
+      "url": "http://w3id.org/topologicpy",
       "oa_url": "https://wassimj.github.io/topologicpy/ontology/topologicpy.ttl",
       "access": "open",
       "cluster": "ifc-ontology-graph",
       "status": "adopted",
-      "verified": "partial",
-      "note": "The actual top: vocabulary taktology builds on (v0.1.0 ttl, dated 2026-05-24 per the source file). No peer-reviewed ontology paper exists; cite the software docs + ttl. VERIFY exact namespace URI."
+      "verified": true,
+      "note": "RE-VERIFIED FULL 2026-07-01 against the published TTL: v0.2.0 (issued 2026-05-24, modified 2026-06-27), canonical IRI http://w3id.org/topologicpy, namespace http://w3id.org/topologicpy# (resolves via w3id). v0.2.0 adds the graph layer (top:Graph + subclasses incl. top:KnowledgeGraph; top:Node/top:Relationship/top:hasPredicate) that ADR-15 types takt:TaktGraph with. Published TTL declares NO FunctionalZone and NO top:area/top:volume (the in-code Ontology.py keeps them as compatibility terms). Pinned with sha256 in ontology/alignments.lock.json. No peer-reviewed ontology paper exists; cite the TTL + software docs (topologicpy.readthedocs.io)."
     },
     {
       "id": "zhu-2025-ifc-graph",

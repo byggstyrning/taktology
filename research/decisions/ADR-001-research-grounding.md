@@ -56,3 +56,31 @@ These taktology elements are currently designed with **thin or no prior art** (s
 
 Do not edit this ADR in place once superseded — add ADR-002, etc. Re-run discovery for
 `candidate` sources and to close the open decision above.
+
+---
+
+## Addendum — 2026-07-01: both VERIFY follow-ups executed (v0.5.0)
+
+The two verification follow-ups this ADR left open are now closed; the results
+landed in the ontology's decision log and are pinned in
+[`ontology/alignments.lock.json`](../../ontology/alignments.lock.json):
+
+- **`top:` URI (`topologicpy-ontology`).** Confirmed against the published TTL
+  (v0.2.0, issued 2026-05-24, modified 2026-06-27): canonical IRI
+  `http://w3id.org/topologicpy`, namespace `http://w3id.org/topologicpy#`,
+  resolving via w3id. v0.2.0's new graph layer (`top:Graph` /
+  `top:KnowledgeGraph`) is what `takt:TaktGraph` subclasses — landed in
+  `docs/03-decisions.md` **ADR-15** (TGraph pairing) and **ADR-13** (`top:Zone`
+  demoted to `skos:relatedMatch`). Corpus entry flipped to fully verified; deep
+  note at [`metadata/topologicpy-ontology.md`](../metadata/topologicpy-ontology.md).
+- **DTC version (`dtc-ontology-spec`).** v2 confirmed as a distinct namespace
+  (`https://dtc-ontology.cms.ed.tum.de/ontology/v2#`, modified 2024-07-31) that
+  drops `WorkPackage`/`hasActivity` and restructures the backbone as
+  `Process → AsPlannedProcess/AsPerformedProcess`. taktology v0.5.0 migrated its
+  parents to v2 (`TaktTask ⊑ dtc:AsPlannedProcess`, `TaktGraph ⊑
+  dtc:ConstructionSchedule`, …) — landed in `docs/03-decisions.md` **ADR-12**.
+  Corpus entry flipped to adopted + fully verified; deep note at
+  [`metadata/dtc-ontology-spec.md`](../metadata/dtc-ontology-spec.md).
+
+The other deferred item — extracting Schlenger 2024's own ontology terms for a
+finer mapping — remains open.
