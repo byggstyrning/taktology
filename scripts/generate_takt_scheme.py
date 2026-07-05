@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 try:
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageMath
 except ImportError as exc:  # pragma: no cover - guidance only
     sys.exit(f"missing dependency: {exc}. Run: pip install -r scripts/requirements.txt")
 
@@ -141,6 +141,30 @@ CH = 26                          # cell height (one zone row)
 LEGEND_COLS = 4
 LEGEND_ROW_H = 26
 SWATCH = 15
+
+
+def resize_premultiplied(img: Image.Image, size) -> Image.Image:
+    """LANCZOS-downscale an RGBA image without background-colour fringing.
+
+    Straight-alpha resampling mixes the RGB of fully-transparent (black) pixels
+    into every anti-aliased edge, fringing text and shapes on light themes.
+    Premultiplying by alpha first makes transparent pixels contribute nothing;
+    unpremultiplying afterwards restores true colours, so the transparent PNG
+    composites correctly over ANY background.
+    """
+    r, g, b, a = img.split()
+    pre = Image.merge("RGBA", (ImageChops.multiply(r, a),
+                               ImageChops.multiply(g, a),
+                               ImageChops.multiply(b, a), a))
+    pre = pre.resize(size, Image.LANCZOS)
+    r32, g32, b32, a32 = (ch.convert("I") for ch in pre.split())
+    channels = [
+        ImageMath.lambda_eval(
+            lambda d: d["convert"](d["min"](d["max"]((d["c"] * 255) / d["max"](d["a"], 1), 0), 255), "L"),
+            c=c, a=a32)
+        for c in (r32, g32, b32)
+    ]
+    return Image.merge("RGBA", (*channels, a32.convert("L")))
 
 
 def sc(v):
@@ -271,7 +295,7 @@ def render(zones, weeks, grid) -> Image.Image:
          f"examples/takt-flowline-demo-b5-1.ttl",
          f_note, INK, anchor="lm")
 
-    return img.resize((W, H), Image.LANCZOS)
+    return resize_premultiplied(img, (W, H))
 
 
 # =============================================================================

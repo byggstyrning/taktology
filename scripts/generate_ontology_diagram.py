@@ -41,7 +41,7 @@ try:
     import rdflib
     from rdflib import RDF, RDFS, OWL
     from rdflib.namespace import SKOS, Namespace
-    from PIL import Image, ImageDraw, ImageFont, ImageFilter
+    from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageFilter, ImageMath
 except ImportError as exc:  # pragma: no cover - guidance only
     sys.exit(f"missing dependency: {exc}. Run: pip install -r scripts/requirements.txt")
 
@@ -138,9 +138,10 @@ W, H = 1360, 1295  # logical canvas; rendered supersampled then downscaled
 
 # --- panel 3: class cards. kind: takt / hero / ext. badge links to panel 1. ---
 NODES = {
-    "WagonType": dict(box=(76, 640, 420, 782), kind="takt", title="WagonType", badge=1,
+    "WagonType": dict(box=(60, 640, 336, 790), kind="takt", title="WagonType", badge=1,
                       note="fills DTC's missing type layer"),
-    "Process": dict(box=(556, 616, 864, 698), kind="ext", title="dtc:Process",
+    "Train": dict(box=(348, 612, 580, 722), kind="takt", title="Train"),
+    "Process": dict(box=(604, 616, 876, 698), kind="ext", title="dtc:Process",
                     lines=["the construction process (reused)"]),
     "TaktZone": dict(box=(936, 616, 1294, 774), kind="takt", title="TaktZone", badge=2),
     "TaktTask": dict(box=(548, 796, 872, 940), kind="hero", title="TaktTask", badge=3),
@@ -153,15 +154,21 @@ NODES = {
 # Which class each node represents (ext nodes map to no takt class).
 NODE_CLASS = {k: k for k in NODES if NODES[k]["kind"] in ("takt", "hero")}
 
+# Domain-free datatype properties (the override cascade, ADR-17) are homed to an
+# authored card: (card, chip suffix). Anything else with no domain -> TaktGraph.
+DATAPROP_HOME = {"slotSpan": ("WagonType", "default"), "taktDuration": ("TaktGraph", "plan-wide")}
+
 # Object-property arrows. `prop` ties the arrow to a takt object property (for
 # validation); external=True edges are reused vocabulary (drawn dashed, green).
 EDGES = [
-    dict(prop="instantiates", src="TaktTask", dst="WagonType", label="instantiates", lpos=(452, 756)),
-    dict(prop="partOfProcess", src="TaktTask", dst="Process", label="partOfProcess", lpos=(712, 748)),
+    dict(prop="instantiates", src="TaktTask", dst="WagonType", label="instantiates", lpos=(430, 800)),
+    dict(prop="partOfProcess", src="TaktTask", dst="Train", label="partOfProcess", lpos=(556, 752)),
+    dict(prop="partOfProcess", src="TaktTask", dst="Process", label="partOfProcess", lpos=(748, 748)),
     dict(prop="performedIn", src="TaktTask", dst="TaktZone", label="performedIn", lpos=(946, 790)),
     dict(prop="hasSuccessor", src="TaktTask", dst="TaktTask", kind="selfloop", side="left",
-         label="hasSuccessor", lpos=(462, 836), sublabel="= the train", slpos=(462, 862)),
-    dict(prop="performedBy", src="TaktTask", dst="Crew", label="performedBy", lpos=(438, 962)),
+         label="hasSuccessor", lpos=(462, 850), sublabel="= the train", slpos=(462, 876)),
+    dict(prop="performedBy", src="TaktTask", dst="Crew", label="performedBy", lpos=(438, 968)),
+    dict(prop="defaultCrew", src="WagonType", dst="Crew", label="defaultCrew", lpos=(154, 896)),
     dict(prop="actsOn", src="TaktTask", dst="Element", label="actsOn — the operand", lpos=(938, 946)),
     dict(prop=None, external=True, src="TaktGraph", dst="TaktTask", dashed=True, color="ext",
          label="dtc:hasProcess", lpos=(712, 976)),
@@ -186,10 +193,10 @@ def validate(classes, objprops, dataprops):
     if missing_p:
         sys.exit(f"ERROR: ontology object properties not drawn as EDGES: {sorted(missing_p)}\n"
                  f"       Add an arrow for each (or make it a subproperty of a drawn one), then re-run.")
-    # Every datatype property must land in a card: its domain's card, or (no
-    # domain — plan-wide by convention, e.g. taktDuration) the TaktGraph card.
+    # Every datatype property must land in a card: its domain's card, an authored
+    # DATAPROP_HOME entry (domain-free cascade values), or the TaktGraph card.
     for p, i in dataprops.items():
-        home = i["domain"] or "TaktGraph"
+        home = i["domain"] or (DATAPROP_HOME.get(p, ("TaktGraph",))[0])
         if home not in NODES:
             sys.exit(f"ERROR: datatype property '{p}' has domain '{i['domain']}' with no card in NODES.")
     phantom_c = laid_classes - set(classes)
@@ -218,12 +225,15 @@ def class_pills(name, info):
 
 
 def card_dataprops(name, dataprops):
-    """Datatype chips shown inside a class card (domain-less -> TaktGraph)."""
+    """Datatype chips shown inside a class card (domain-less -> DATAPROP_HOME/TaktGraph)."""
     out = []
     for p, i in dataprops.items():
-        home = i["domain"] or "TaktGraph"
+        if i["domain"]:
+            home, suffix = i["domain"], None
+        else:
+            home, suffix = DATAPROP_HOME.get(p, ("TaktGraph", None))
         if home == name:
-            out.append(p + (" (plan-wide)" if i["domain"] is None else ""))
+            out.append(p + (f" ({suffix})" if suffix else ""))
     return sorted(out)
 
 
@@ -235,6 +245,32 @@ SS = 2  # supersample factor
 
 def sc(v):
     return v * SS
+
+
+def resize_premultiplied(img: Image.Image, size) -> Image.Image:
+    """LANCZOS-downscale an RGBA image without background-colour fringing.
+
+    Straight-alpha resampling mixes the RGB of fully-transparent pixels into
+    every anti-aliased edge — text grows fringes and translucent drop shadows
+    wash toward the transparent pixels' colour (a near-white 'shadow' becomes a
+    light HALO on dark themes). Premultiplying by alpha first makes transparent
+    pixels contribute nothing; unpremultiplying afterwards restores true
+    colours, so shadows keep their dark RGB at low alpha and the PNG composites
+    correctly over ANY background.
+    """
+    r, g, b, a = img.split()
+    pre = Image.merge("RGBA", (ImageChops.multiply(r, a),
+                               ImageChops.multiply(g, a),
+                               ImageChops.multiply(b, a), a))
+    pre = pre.resize(size, Image.LANCZOS)
+    r32, g32, b32, a32 = (ch.convert("I") for ch in pre.split())
+    channels = [
+        ImageMath.lambda_eval(
+            lambda d: d["convert"](d["min"](d["max"]((d["c"] * 255) / d["max"](d["a"], 1), 0), 255), "L"),
+            c=c, a=a32)
+        for c in (r32, g32, b32)
+    ]
+    return Image.merge("RGBA", (*channels, a32.convert("L")))
 
 
 # Vocabulary colour system — panel 2 slabs and every pill in panel 3 share it.
@@ -447,12 +483,10 @@ def pill_rows(d, cx, y, pills, f, max_w, gap=8, row_h=27):
 
 def render(version, classes, objprops, dataprops) -> Image.Image:
     # Transparent canvas so the PNG reads on any GitHub background (light OR dark).
-    # NOTE the RGB of the fully-transparent pixels is a light neutral, NOT black:
-    # LANCZOS downscaling mixes the RGB of transparent neighbours into text edges,
-    # and a black base would put a dark fringe around every glyph drawn outside
-    # the opaque panels.
-    CLEAR = (246, 246, 250, 0)
-    img = Image.new("RGBA", (int(sc(W)), int(sc(H))), CLEAR)
+    # Fringe-free edges are handled by resize_premultiplied() at the end; the
+    # shadow layers below still set their base RGB to the shadow colour because
+    # GaussianBlur runs on straight alpha BEFORE compositing.
+    img = Image.new("RGBA", (int(sc(W)), int(sc(H))), (0, 0, 0, 0))
 
     P1 = (36, 122, 748, 552)      # panel 1 — the plan grid
     P2 = (768, 122, 1324, 552)    # panel 2 — the reuse stack
@@ -722,16 +756,10 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
                 "every term carries dcterms:source → research/ corpus  ·  machine-checked by scripts/validate.py (SHACL + CQ queries)",
                 f_tiny, COL["subtitle"], halo=True, pad=(9, 4), radius=10)
 
-    # Force the RGB of transparent pixels to a light neutral before downscaling:
-    # LANCZOS mixes the RGB of transparent neighbours into glyph/edge pixels, and
-    # the composites above reset those to black, which would fringe every glyph
-    # drawn outside the opaque panels.
-    a = img.getchannel("A")
-    neutral = Image.new("RGB", img.size, (246, 246, 250))
-    rgb = Image.composite(img.convert("RGB"), neutral, a)
-    img = Image.merge("RGBA", (*rgb.split(), a))
-
-    return img.resize((W, H), Image.LANCZOS)
+    # Premultiplied resample: no fringes on glyph edges, and drop shadows keep
+    # their true (dark, translucent) colour so the transparent PNG reads
+    # correctly on light AND dark GitHub themes.
+    return resize_premultiplied(img, (W, H))
 
 
 # =============================================================================
