@@ -40,29 +40,29 @@
     sh:declare [ sh:prefix "takt" ; sh:namespace "https://w3id.org/taktology#"^^xsd:anyURI ] .
 
 # =============================================================================
-# takt:TaktTask — one cell of the plan grid
+# takt:Wagon — one cell of the plan grid
 # =============================================================================
-takt:TaktTaskShape a sh:NodeShape ;
-    sh:targetClass takt:TaktTask ;
-    sh:name "Takt task (grid cell)"@en ;
+takt:WagonShape a sh:NodeShape ;
+    sh:targetClass takt:Wagon ;
+    sh:name "Wagon (grid cell)"@en ;
     sh:property [
         sh:path takt:performedIn ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:class takt:TaktZone ;
-        sh:message "Every takt task sits in exactly one takt:TaktZone (takt:performedIn) — a cell has exactly one grid row."@en ;
+        sh:message "Every wagon sits in exactly one takt:TaktZone (takt:performedIn) — a cell has exactly one grid row."@en ;
     ] , [
         sh:path takt:slot ;
         sh:minCount 1 ;
         sh:maxCount 1 ;
         sh:datatype xsd:integer ;
         sh:minInclusive 1 ;
-        sh:message "Every takt task occupies exactly one takt:slot — an xsd:integer >= 1 (the 1-based grid column)."@en ;
+        sh:message "Every wagon occupies exactly one takt:slot — an xsd:integer >= 1 (the 1-based grid column)."@en ;
     ] , [
         sh:path takt:instantiates ;
         sh:maxCount 1 ;
         sh:class takt:WagonType ;
-        sh:message "A takt task instantiates at most one takt:WagonType (buffer and milestone cells may instantiate none)."@en ;
+        sh:message "A wagon instantiates at most one takt:WagonType (buffer and milestone cells may instantiate none)."@en ;
     ] , [
         sh:path takt:isMilestone ;
         sh:maxCount 1 ;
@@ -75,13 +75,13 @@ takt:TaktTaskShape a sh:NodeShape ;
         sh:message "takt:isBuffer is a single xsd:boolean flag."@en ;
     ] , [
         sh:path takt:hasSuccessor ;
-        sh:class takt:TaktTask ;
-        sh:message "takt:hasSuccessor (the train edge) links takt tasks to takt tasks."@en ;
+        sh:class takt:Wagon ;
+        sh:message "takt:hasSuccessor (the train edge) links wagons to wagons."@en ;
     ] .
 
 # --- Reading A (location flow): same-zone successors must share their zone ---
 takt:SameZoneFlowShape a sh:NodeShape ;
-    sh:targetClass takt:TaktTask ;
+    sh:targetClass takt:Wagon ;
     sh:name "Reading A — location flow stays in one zone"@en ;
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -101,7 +101,7 @@ takt:SameZoneFlowShape a sh:NodeShape ;
 
 # --- Reading B (trade flow): same-wagon successors must share their wagon ----
 takt:SameWagonFlowShape a sh:NodeShape ;
-    sh:targetClass takt:TaktTask ;
+    sh:targetClass takt:Wagon ;
     sh:name "Reading B — trade flow stays one wagon"@en ;
     sh:sparql [
         a sh:SPARQLConstraint ;
@@ -121,7 +121,7 @@ takt:SameWagonFlowShape a sh:NodeShape ;
 
 # --- A buffer is a deliberately EMPTY wagon slot ------------------------------
 takt:BufferCellShape a sh:NodeShape ;
-    sh:targetClass takt:TaktTask ;
+    sh:targetClass takt:Wagon ;
     sh:name "Buffer cells stay empty"@en ;
     sh:severity sh:Warning ;
     sh:sparql [
@@ -208,7 +208,7 @@ takt:TrainShape a sh:NodeShape ;
     ] .
 
 takt:TaskOverrideShape a sh:NodeShape ;
-    sh:targetClass takt:TaktTask ;
+    sh:targetClass takt:Wagon ;
     sh:name "Task-level overrides"@en ;
     sh:property [
         sh:path takt:slotSpan ;

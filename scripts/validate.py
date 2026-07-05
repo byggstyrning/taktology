@@ -190,17 +190,17 @@ def seeded_broken_plan(tbox: rdflib.Graph) -> rdflib.Graph:
     g = graph_union(tbox)
     bad = Namespace("urn:takt-selftest:")
     # 1+2: a task with no performedIn zone and a 0-based slot
-    g.add((bad.floating_task, RDF.type, TAKT.TaktTask))
+    g.add((bad.floating_task, RDF.type, TAKT.Wagon))
     g.add((bad.floating_task, TAKT.slot, Literal(0)))
     # 3: a hasSuccessorSameZone edge whose ends sit in DIFFERENT zones
     for zone in (bad.zone_a, bad.zone_b):
         g.add((zone, RDF.type, TAKT.TaktZone))
         g.add((zone, RDFS.label, Literal(str(zone))))
-    g.add((bad.task_1, RDF.type, TAKT.TaktTask))
+    g.add((bad.task_1, RDF.type, TAKT.Wagon))
     g.add((bad.task_1, TAKT.performedIn, bad.zone_a))
     g.add((bad.task_1, TAKT.slot, Literal(1)))
     g.add((bad.task_1, TAKT.hasSuccessorSameZone, bad.task_2))
-    g.add((bad.task_2, RDF.type, TAKT.TaktTask))
+    g.add((bad.task_2, RDF.type, TAKT.Wagon))
     g.add((bad.task_2, TAKT.performedIn, bad.zone_b))
     g.add((bad.task_2, TAKT.slot, Literal(2)))
     return g

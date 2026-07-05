@@ -13,7 +13,7 @@
 
     "TaktZone": "takt:TaktZone",
     "WagonType": "takt:WagonType",
-    "TaktTask": "takt:TaktTask",
+    "Wagon": "takt:Wagon",
     "Crew": "takt:Crew",
     "TaktGraph": "takt:TaktGraph",
 

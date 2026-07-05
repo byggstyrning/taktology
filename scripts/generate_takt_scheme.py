@@ -6,7 +6,7 @@
 # takt board), straight from examples/takt-flowline-demo.csv.
 #
 # A takt scheme is the classic coloured grid: takt ZONES down the side, takt
-# WEEKS across the top, and one coloured cell per takt task — the same wagon
+# WEEKS across the top, and one coloured cell per wagon occurrence — the same wagon
 # walking zone-to-zone makes the diagonal "train". The grid is DATA-DRIVEN
 # (zones, weeks and which wagon sits in each cell all come from the CSV); the
 # WAGONS table below is the authored legend (label + colour per wagon), and a
@@ -78,12 +78,37 @@ WAGONS = {
     "23":   ("Cleaning & handover",      "#7C9A6B"),
 }
 
-# --- Theme-agnostic ink (readable on white AND dark GitHub backgrounds) -------
-INK_TITLE = (92, 80, 190)       # medium indigo
-INK = (118, 118, 132)           # mid neutral for labels
-GRID = (150, 150, 162, 90)      # faint lattice
-GUIDE = (150, 150, 162, 60)     # even fainter time guides
-CALLOUT = (232, 168, 52)        # amber ring around the worked-example cell
+# --- Per-theme ink. The PNGs stay transparent; a <picture prefers-color-scheme>
+# block in the README serves the matching variant, so text/grid always suit the
+# page behind them. Wagon colours are mid-tone and shared by both themes.
+SCHEME_THEMES = {
+    "light": dict(
+        ink_title=(92, 80, 190),        # medium indigo
+        ink=(104, 106, 122),            # neutral label ink
+        grid=(150, 150, 162, 90),       # faint lattice
+        guide=(150, 150, 162, 60),      # even fainter time guides
+        halo=(255, 255, 255, 150),      # legend-text halo
+    ),
+    "dark": dict(
+        ink_title=(171, 160, 245),
+        ink=(178, 186, 198),
+        grid=(110, 118, 129, 90),
+        guide=(110, 118, 129, 60),
+        halo=(13, 17, 23, 170),
+    ),
+}
+INK_TITLE = SCHEME_THEMES["light"]["ink_title"]
+INK = SCHEME_THEMES["light"]["ink"]
+GRID = SCHEME_THEMES["light"]["grid"]
+GUIDE = SCHEME_THEMES["light"]["guide"]
+HALO = SCHEME_THEMES["light"]["halo"]
+CALLOUT = (232, 168, 52)        # amber ring around the worked-example cell (both themes)
+
+
+def set_theme(name: str) -> None:
+    global INK_TITLE, INK, GRID, GUIDE, HALO
+    th = SCHEME_THEMES[name]
+    INK_TITLE, INK, GRID, GUIDE, HALO = th["ink_title"], th["ink"], th["grid"], th["guide"], th["halo"]
 
 
 # =============================================================================
@@ -223,13 +248,13 @@ def render(zones, weeks, grid) -> Image.Image:
     f_note = fnt(False, 13)
 
     def text(xy, s, font, fill, anchor="lm", halo=False):
-        kw = dict(stroke_width=int(sc(2)), stroke_fill=(255, 255, 255, 150)) if halo else {}
+        kw = dict(stroke_width=int(sc(2)), stroke_fill=HALO) if halo else {}
         d.text((sc(xy[0]), sc(xy[1])), s, font=font, fill=fill, anchor=anchor, **kw)
 
     # ---- title + subtitle ----------------------------------------------------
     text((PAD_L, TITLE_Y), "Example takt plan — flowline", f_title, INK_TITLE, anchor="lm")
     text((PAD_L, SUB_Y),
-         f"{nz} takt zones × {nw} weekly takts · one coloured cell = one takt task "
+         f"{nz} takt zones × {nw} weekly takts · one coloured cell = one wagon "
          f"(wagon × zone × week) · from examples/takt-flowline-demo.csv",
          f_sub, INK, anchor="lm")
 
@@ -301,13 +326,20 @@ def render(zones, weeks, grid) -> Image.Image:
 # =============================================================================
 # 3. README sync
 # =============================================================================
-def update_readme(rel_png):
+def update_readme(rel_light, rel_dark):
     if not README.exists():
         return
     text = README.read_text(encoding="utf-8")
     alt = "Example takt plan — flowline scheme generated from the demo data"
+    # GitHub renders <picture> in READMEs: the dark variant is served on dark
+    # themes, so the transparent PNG always matches the page behind it.
     block = (f'{MARK_START}\n\n'
-             f'<p align="center">\n  <img src="{rel_png}" alt="{alt}" width="{DISPLAY_WIDTH}">\n</p>\n\n'
+             f'<p align="center">\n'
+             f'  <picture>\n'
+             f'    <source media="(prefers-color-scheme: dark)" srcset="{rel_dark}">\n'
+             f'    <img src="{rel_light}" alt="{alt}" width="{DISPLAY_WIDTH}">\n'
+             f'  </picture>\n'
+             f'</p>\n\n'
              f'{MARK_END}')
     if MARK_START in text and MARK_END in text:
         new = text.split(MARK_START)[0] + block + text.split(MARK_END, 1)[1]
@@ -319,7 +351,7 @@ def update_readme(rel_png):
         return
     if new != text:
         README.write_text(new, encoding="utf-8")
-        print(f"updated README takt-scheme block -> {rel_png}")
+        print(f"updated README takt-scheme block -> {rel_light} + {rel_dark}")
     else:
         print("README already up to date.")
 
@@ -332,13 +364,17 @@ def main():
     validate(grid, zones)
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    img = render(zones, weeks, grid)
-    img.save(OUT, "PNG", optimize=True)
-    rel = OUT.relative_to(ROOT).as_posix()
-    print(f"wrote {rel}  ({img.size[0]}x{img.size[1]}, {len(zones)} zones, "
-          f"{len(weeks)} weeks, {len(WAGONS)} wagons)")
+    rels = {}
+    for theme in ("light", "dark"):
+        set_theme(theme)
+        img = render(zones, weeks, grid)
+        out = OUT if theme == "light" else OUT.with_name(OUT.stem + "-dark.png")
+        img.save(out, "PNG", optimize=True)
+        rels[theme] = out.relative_to(ROOT).as_posix()
+        print(f"wrote {rels[theme]}  ({img.size[0]}x{img.size[1]}, {len(zones)} zones, "
+              f"{len(weeks)} weeks, {len(WAGONS)} wagons)")
 
-    update_readme(rel)
+    update_readme(rels["light"], rels["dark"])
 
 
 if __name__ == "__main__":

@@ -74,7 +74,7 @@ TGraph dictionary values — see [docs/05-tgraph-pairing.md](../docs/05-tgraph-p
 
 ## 3. The flowline
 
-Each filled cell is a **`takt:TaktTask`** — one occurrence of a wagon, in one
+Each filled cell is a **`takt:Wagon`** — one occurrence of a wagon, in one
 zone, in one takt week. Read it as a train: the same wagon walks zone-to-zone,
 and the building fills floor-by-floor (Plan 5 → 4 → 2). The week each zone is
 *entered* (wagon 3 arrives) shows the cascade:
@@ -127,12 +127,12 @@ The full wagon sequence for the two Plan-5 zones, week by week. Blanks are
 A single coloured cell — say **wagon `5.1` in zone `B5:1` at `T04`** — becomes:
 
 ```
-WagonType  5.1  ──instantiates──▶  TaktTask
+WagonType  5.1  ──instantiates──▶  Wagon
                                      ├─ performedIn  ▶ TaktZone  B5:1
                                      ├─ actsOn       ▶ Element   (the operand → quantity)
                                      ├─ performedBy  ▶ Crew      SUB-03
                                      ├─ slot         ▶ 4         (T04; the plan carries taktDuration P7D + planStart)
-                                     └─ hasSuccessorSameZone ▶ TaktTask  5.2 @ B5:1   (the train edge)
+                                     └─ hasSuccessorSameZone ▶ Wagon  5.2 @ B5:1   (the train edge)
 ```
 
 - **The chain *is* the train.** `hasSuccessorSameZone` walks down a zone column
@@ -145,7 +145,7 @@ WagonType  5.1  ──instantiates──▶  TaktTask
   (see [ADR-10](../docs/03-decisions.md)). The structural mapping is what the A-Box
   [`takt-flowline-demo-b5-1.ttl`](takt-flowline-demo-b5-1.ttl) shows.
 - **Buffers** (the blanks) are first-class in takt — and, since v0.5.0, in the
-  vocabulary: an empty cell is a `TaktTask` with `takt:isBuffer true`
+  vocabulary: an empty cell is a `Wagon` with `takt:isBuffer true`
   (see [ADR-16](../docs/03-decisions.md) and [`takt-train-demo.ttl`](takt-train-demo.ttl)).
 
 ### Worth discussing

@@ -493,3 +493,37 @@ chain is the train) stands.
 overrides look exactly like v0.5.0 plans (all three additions are optional; SHACL
 adds only max-cardinality/typing checks, no minimums). `slot` is now documented as
 the *entry* slot; a task occupies `[slot, slot + slotSpan − 1]`.
+
+---
+
+## ADR-18 — The occurrence class is `takt:Wagon`, not `takt:TaktTask` (v0.7.0)
+
+**Decision.** Rename the cell-level occurrence class `takt:TaktTask` → **`takt:Wagon`**
+(label "Wagon"). No other semantics change: `⊑ dtc:AsPlannedProcess`,
+`≈ ifc:IfcTask`, and every property stay put.
+
+**Why.** "Takt task" was our invention, not the domain's. Auditing the corpus:
+**"wagon" is the cell-level word** across the sources (Becker & Tschickardt's
+*Taktwagen*, the KIT school's work-packages → **takt wagons** → **takt trains**
+hierarchy in Binninger/Dlouhy, Haghsheno, Lehtovaara, Ljung…), while "takt task"
+appears in **zero** sources — only in our own prose. A planner pointing at a cell
+says *"wagon 5.1 in B5:1, week 4"*. "Task" is CPM/IFC scheduling lingo; it crept in
+via the `IfcTask` alignment, and the alignment does not need the local name to match.
+
+The original worry — "wagon" is ambiguous between template and occurrence — is
+solved by the exact convention IFC itself uses: **occurrence takes the bare name,
+type takes the `Type` suffix** (`IfcTask`/`IfcTaskType` → `Wagon`/`WagonType`).
+The rename also makes neighbouring terms *more* literal: `hasSuccessorSameWagon`
+now reads as "the same wagon continues to the next zone" (occurrences are the
+wagon's stops), and `isBuffer true` on a `Wagon` is a **buffer wagon**
+(*Pufferwagen*) — the literature's own term.
+
+**Naming note.** `TaktZone` keeps its prefixed name because "takt zone"
+(*taktzon*, *Taktbereich*) IS spoken lingo; "takt task" never was. That asymmetry
+was the tell.
+
+**Consequences.** Breaking rename → v0.7.0 (MINOR pre-1.0). Migration for v0.6.0
+data: `s/takt:TaktTask/takt:Wagon/` — nothing else. Executed now deliberately:
+w3id is not yet registered and there are no external consumers, so this is the
+cheapest moment the rename will ever have. Older ADRs above keep "TaktTask" as
+historical record.

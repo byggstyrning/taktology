@@ -58,7 +58,7 @@ def dry_run() -> int:
         PREFIX takt: <https://w3id.org/taktology#>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
         SELECT ?zone ?wagon WHERE {
-            ?t a takt:TaktTask ; takt:slot 2 ;
+            ?t a takt:Wagon ; takt:slot 2 ;
                takt:performedIn ?z ; takt:instantiates ?w .
             ?z rdfs:label ?zone . ?w rdfs:label ?wagon .
         } ORDER BY ?zone"""
@@ -112,8 +112,8 @@ def live_run() -> int:
     #   a stable uri, and a human label.
     v_plan = g.AddVertex(dictionary={"ontology_class": "takt:TaktGraph", "uri": f"{EX}plan", "label": "Demo plan"})
     v_zone = g.AddVertex(dictionary={"ontology_class": "takt:TaktZone", "uri": f"{EX}zone_B5_1", "label": "B5:1"})
-    v_t1 = g.AddVertex(dictionary={"ontology_class": "takt:TaktTask", "uri": f"{EX}t_51", "label": "5.1 @ B5:1"})
-    v_t2 = g.AddVertex(dictionary={"ontology_class": "takt:TaktTask", "uri": f"{EX}t_52", "label": "5.2 @ B5:1"})
+    v_t1 = g.AddVertex(dictionary={"ontology_class": "takt:Wagon", "uri": f"{EX}t_51", "label": "5.1 @ B5:1"})
+    v_t2 = g.AddVertex(dictionary={"ontology_class": "takt:Wagon", "uri": f"{EX}t_52", "label": "5.2 @ B5:1"})
 
     #   (b/d) each edge carries ontology_predicate — the semantic carrier.
     g.AddEdge(v_t1, v_zone, dictionary={"ontology_predicate": "takt:performedIn"})
@@ -146,8 +146,8 @@ def live_run() -> int:
     merged.parse(TAKT_TTL)
     merged.parse(data=ttl)
     n_tasks = len(list(merged.query(
-        "PREFIX takt: <https://w3id.org/taktology#> SELECT ?t WHERE { ?t a takt:TaktTask }")))
-    print(f"[live] round-trip parsed: {len(merged)} triples, {n_tasks} takt:TaktTask")
+        "PREFIX takt: <https://w3id.org/taktology#> SELECT ?t WHERE { ?t a takt:Wagon }")))
+    print(f"[live] round-trip parsed: {len(merged)} triples, {n_tasks} takt:Wagon")
     return 0
 
 

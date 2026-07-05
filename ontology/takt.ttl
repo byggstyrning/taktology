@@ -2,7 +2,7 @@
 # Taktology — a minimal, research-grounded vocabulary for takt production planning
 # =============================================================================
 #
-# v0.6.0 — MINIMAL CORE + FLEXIBLE-TAKT OVERRIDES. Aligned to the Digital Twin
+# v0.7.0 — MINIMAL CORE + FLEXIBLE-TAKT OVERRIDES. Aligned to the Digital Twin
 #          Construction (DTC) ontology v2 and to the TopologicPy ontology (top:)
 #          v0.2.0 — including its graph layer (top:Graph / top:KnowledgeGraph),
 #          which is what a TGraph-built takt plan projects into.
@@ -17,8 +17,8 @@
 # The override cascade (ADR-17) — a structured TEMPLATE that stays overridable
 #   The plan is a template with defaults, never a straitjacket. Rhythm values
 #   resolve most-specific-wins:
-#       TaktTask  >  Train  >  WagonType  >  TaktGraph        (taktDuration)
-#       TaktTask  >  WagonType                                (slotSpan, crew)
+#       Wagon  >  Train  >  WagonType  >  TaktGraph        (taktDuration)
+#       Wagon  >  WagonType                                (slotSpan, crew)
 #   This works because takt:taktDuration and takt:slotSpan carry NO rdfs:domain:
 #   assert them at whichever level the deviation lives. queries/cq11-effective-beat.rq
 #   is the canonical resolution query.
@@ -40,7 +40,7 @@
 # Why DTC v2 (supersedes the v0.4.x alignment to DTC v1; see docs ADR-12)
 #   v2 restructures the process backbone: Process > AsPlannedProcess/AsPerformedProcess
 #   (WorkPackage/Activity/Task are gone), hasTarget and isPerformedIn take domain
-#   Process (level-correct for a takt task), ConstructionSchedule models the plan,
+#   Process (level-correct for a wagon occurrence), ConstructionSchedule models the plan,
 #   and the as-planned/as-performed split is the natural seam for takt CONTROL later.
 #   v2 imports BOT, so dtc: and bot: compose by design.
 #
@@ -79,11 +79,11 @@
     dcterms:title "Taktology — takt production planning vocabulary (minimal core)"@en ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     dcterms:created "2026-06-23"^^xsd:date ;
-    dcterms:modified "2026-07-03"^^xsd:date ;
+    dcterms:modified "2026-07-05"^^xsd:date ;
     dcterms:creator "Byggstyrning AB"@en ;
-    owl:versionInfo "0.6.0" ;
-    owl:versionIRI <https://w3id.org/taktology/0.6.0> ;
-    owl:priorVersion <https://w3id.org/taktology/0.5.0> ;
+    owl:versionInfo "0.7.0" ;
+    owl:versionIRI <https://w3id.org/taktology/0.7.0> ;
+    owl:priorVersion <https://w3id.org/taktology/0.6.0> ;
     vann:preferredNamespacePrefix "takt" ;
     vann:preferredNamespaceUri "https://w3id.org/taktology#" ;
     rdfs:comment """Minimal core takt-planning vocabulary. Specializes the Digital
@@ -97,7 +97,7 @@
     rdfs:seeAlso <https://ceur-ws.org/Vol-3824/paper3.pdf> .
 
 # =============================================================================
-# CLASSES (5)
+# CLASSES (6)
 # =============================================================================
 
 takt:TaktZone a owl:Class ;
@@ -129,7 +129,7 @@ takt:WagonType a owl:Class ;
     rdfs:label "Wagon type"@en ;
     rdfs:comment """The reusable definition of one trade's work package — e.g.
         'Enkling gipsväggar' (single-side drywall). The TYPE level; its per-zone
-        occurrences are takt:TaktTask, linked by takt:instantiates. DTC has no
+        occurrences are takt:Wagon, linked by takt:instantiates. DTC has no
         occurrence-type layer (dtc:Type is an enumeration base for status/sequence
         types, not task types), so this term has no DTC parent and aligns only to
         IFC's type mechanism."""@en ;
@@ -138,13 +138,13 @@ takt:WagonType a owl:Class ;
     dcterms:source <https://doi.org/10.1002/bate.202200088> ,      # becker-tschickardt-2023-bimtakt (activity structure)
                    <https://iglc.net/Papers/Details/1482> .        # tommelein-2017 (work packaging, non-repetitive takt)
 
-takt:TaktTask a owl:Class ;
+takt:Wagon a owl:Class ;
     rdfs:subClassOf dtc:AsPlannedProcess ;
-    rdfs:label "Takt task"@en ;
+    rdfs:label "Wagon"@en ;
     rdfs:comment """One occurrence: one wagon performed in one takt zone for one takt
         (one coloured cell of the plan grid). A DTC v2 AsPlannedProcess is 'an
         as-planned process that is part of a construction schedule' — exactly what a
-        takt task is. Carries its slot in the rhythm and acts on a trade-specific
+        wagon occurrence is. Carries its slot in the rhythm and acts on a trade-specific
         subset of the zone's elements. Degenerate cells are flagged, not subclassed:
         takt:isMilestone for milestone cells, takt:isBuffer for capacity-buffer cells
         (empty wagons) — a documented pragmatism mirroring IfcTask.IsMilestone."""@en ;
@@ -155,7 +155,7 @@ takt:TaktTask a owl:Class ;
 takt:Crew a owl:Class ;
     rdfs:subClassOf dtc:AsPlannedWorkerCrew ;
     rdfs:label "Crew"@en ;
-    rdfs:comment """A planned worker crew (gang) that performs takt tasks; the crew
+    rdfs:comment """A planned worker crew (gang) that performs wagons; the crew
         codes in a takt plan. DTC v2 keeps as-planned and as-performed crews disjoint;
         this is the PLANNED crew — observed crews belong on the as-performed side."""@en ;
     skos:closeMatch ifc:IfcCrewResource ;
@@ -170,7 +170,7 @@ takt:TaktGraph a owl:Class ;
         plus its rhythm. Doubles as (a) a top:KnowledgeGraph — the thing a TopologicPy
         TGraph-built takt plan projects into (nodes/relationships via top:hasNode /
         top:hasRelationship), and (b) a dtc:ConstructionSchedule — so plan membership
-        is dtc:hasProcess (TaktGraph -> TaktTask), reused rather than minted. Carries
+        is dtc:hasProcess (TaktGraph -> Wagon), reused rather than minted. Carries
         the plan-wide beat (takt:taktDuration) and the calendar anchor
         (takt:planStart). Supersedes ADR-7's 'plan container stays out of the core':
         the TGraph pairing gave the container a concrete job."""@en ;
@@ -183,7 +183,7 @@ takt:TaktGraph a owl:Class ;
 takt:Train a owl:Class ;
     rdfs:subClassOf dtc:AsPlannedProcess ;
     rdfs:label "Train"@en ;
-    rdfs:comment """An OPTIONAL, addressable grouping of takt tasks that run as one
+    rdfs:comment """An OPTIONAL, addressable grouping of wagons that run as one
         train — one trade sequence with its own identity (e.g. 'the MEP train',
         'the interiors train on L1-L3'). The takt:hasSuccessor chain remains the
         canonical train STRUCTURE (a train is still a path, not this class); mint a
@@ -205,10 +205,10 @@ takt:Train a owl:Class ;
 
 takt:instantiates a owl:ObjectProperty ;
     rdfs:label "instantiates"@en ;
-    rdfs:comment """Links a takt task occurrence to the wagon type it realises. No
+    rdfs:comment """Links a wagon occurrence to the wagon type it realises. No
         DTC equivalent (DTC has no occurrence-type layer). Buffer cells
         (takt:isBuffer true) typically instantiate nothing."""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  takt:WagonType ;
     rdfs:seeAlso ifc:IfcRelDefinesByType ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -221,9 +221,9 @@ takt:performedIn a owl:ObjectProperty ;
     rdfs:comment """The takt zone a task is located in — the work AREA, which generally
         contains elements for several trades, not only this task's. For the operand,
         use takt:actsOn. Specializes dtc:isPerformedIn (v2: Process -> WorkingZone;
-        level-correct since TaktTask is an AsPlannedProcess and TaktZone an
+        level-correct since Wagon is an AsPlannedProcess and TaktZone an
         AsPlannedWorkingZone)."""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  takt:TaktZone ;
     rdfs:seeAlso ifc:IfcRelAssignsToProduct ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -239,7 +239,7 @@ takt:actsOn a owl:ObjectProperty ;
         Specializes dtc:hasTarget (v2: Process -> bot:Element). Deliberately broader
         than DTC's/IFC's 'resulting product' phrasing: covers produced AND
         operated-on elements (documented divergence, see docs ADR-4)."""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  bot:Element ;
     rdfs:seeAlso ifc:IfcRelAssignsToProduct ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -247,12 +247,12 @@ takt:actsOn a owl:ObjectProperty ;
 
 takt:performedBy a owl:ObjectProperty ;
     rdfs:label "performed by"@en ;
-    rdfs:comment """The crew that performs the takt task. DTC v2 reifies this
+    rdfs:comment """The crew that performs the wagon. DTC v2 reifies this
         (AsPlannedProcess hasResourceAssignment -> ResourceAssignment requiresResource
         -> AsPlannedResource); takt uses a direct edge for simplicity, related to that
         pattern by seeAlso. Note IFC fans the other way (IfcRelAssignsToProcess assigns
         the crew TO the task)."""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  takt:Crew ;
     rdfs:seeAlso dtc:hasResourceAssignment , dtc:requiresResource , ifc:IfcRelAssignsToProcess ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -273,7 +273,7 @@ takt:defaultCrew a owl:ObjectProperty ;
 
 takt:hasSuccessor a owl:ObjectProperty ;
     rdfs:label "has successor"@en ;
-    rdfs:comment """The next takt task in execution order (default finish-start). The
+    rdfs:comment """The next wagon in execution order (default finish-start). The
         CHAIN of these edges is the TRAIN — a train is a path through the task graph,
         not a class. DTC reifies sequencing (hasPrecondition -> ProcessPrecondition +
         requiresProcess + hasSequenceType); takt uses a direct edge, related by
@@ -281,8 +281,8 @@ takt:hasSuccessor a owl:ObjectProperty ;
         the flow direction machine-detectable: takt:hasSuccessorSameZone (Reading A,
         the cross-trade convoy through one zone) and takt:hasSuccessorSameWagon
         (Reading B, one wagon's run across zones)."""@en ;
-    rdfs:domain takt:TaktTask ;
-    rdfs:range  takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
+    rdfs:range  takt:Wagon ;
     rdfs:seeAlso dtc:requiresProcess , ifc:IfcRelSequence ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://doi.org/10.1061/9780784413517.168> ,        # frandson-2014-crc (predecessor field)
@@ -294,8 +294,8 @@ takt:hasSuccessorSameZone a owl:ObjectProperty ;
     rdfs:comment """Reading A / LOCATION FLOW: the next task in the SAME takt zone —
         the next wagon of the cross-trade convoy pulling into this station. Successive
         tasks share their takt:performedIn zone and differ in wagon."""@en ;
-    rdfs:domain takt:TaktTask ;
-    rdfs:range  takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
+    rdfs:range  takt:Wagon ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://doi.org/10.1080/01446193.2020.1824295> ,    # lehtovaara-2021 (location flow)
                    <https://iglc.net/Papers/Details/1350> .             # dlouhy-2016-three-level
@@ -305,26 +305,26 @@ takt:hasSuccessorSameWagon a owl:ObjectProperty ;
     rdfs:comment """Reading B / TRADE FLOW: the same wagon's next occurrence in the
         NEXT takt zone — one trade tracked across the building. Successive tasks share
         their takt:instantiates wagon type and differ in zone."""@en ;
-    rdfs:domain takt:TaktTask ;
-    rdfs:range  takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
+    rdfs:range  takt:Wagon ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://doi.org/10.1080/01446193.2020.1824295> ,    # lehtovaara-2021 (trade flow)
                    <https://iglc.net/Papers/Details/1181> .             # frandson-2015-lbms-vs-takt
 
 takt:partOfProcess a owl:ObjectProperty ;
     rdfs:label "part of process"@en ;
-    rdfs:comment """The on-site construction PROCESS this takt task (or train) is part
+    rdfs:comment """The on-site construction PROCESS this wagon (or train) is part
         of. Process membership together with takt:performedIn (space) and the rhythm
         (time) makes the task one cell of a Spatio-Temporal Breakdown Structure (TBS;
         Ljung 2026) — the process axis of the space x time x process breakdown
         (responsibility follows from crew + process together, not from this edge
-        alone). Since v0.6.0 the domain is TaktTask OR Train: a task can be part of a
+        alone). Since v0.6.0 the domain is Wagon OR Train: a task can be part of a
         takt:Train (which is itself a dtc:AsPlannedProcess), and the train nests
         onward into the wider process with the same property. DTC v2 reifies
         decomposition the other way round (Process isDecomposedInto ->
         ProcessDecomposition hasChildProcess -> Process, with decompositionLevel);
         takt keeps the member-centric direct edge, related by seeAlso."""@en ;
-    rdfs:domain [ a owl:Class ; owl:unionOf ( takt:TaktTask takt:Train ) ] ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( takt:Wagon takt:Train ) ] ;
     rdfs:range  dtc:Process ;
     rdfs:seeAlso dtc:isDecomposedInto , dtc:hasChildProcess , ifc:IfcRelNests ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -342,8 +342,8 @@ takt:taktDuration a owl:DatatypeProperty ;
         on purpose — this is the top of the OVERRIDE CASCADE (ADR-17): assert it ONCE
         on the takt:TaktGraph for the plan-wide beat, and override on a takt:Train
         (a train running its own rhythm), a takt:WagonType, or an individual
-        takt:TaktTask where the deviation genuinely lives. Effective beat =
-        task > train > wagonType > plan (queries/cq11-effective-beat.rq). This is
+        takt:Wagon where the deviation genuinely lives. Effective beat =
+        wagon > train > wagonType > plan (queries/cq11-effective-beat.rq). This is
         the BEAT, distinct from a task's computed work content (which must fit
         within it — a consumer-side check, see docs ADR-10)."""@en ;
     rdfs:range  xsd:duration ;
@@ -358,7 +358,7 @@ takt:slot a owl:DatatypeProperty ;
         defaults to 1). Planned calendar dates DERIVE: task start = takt:planStart +
         (slot - 1) x effective taktDuration. (v0.5.0 moved this from the dissolved
         TaktTime class onto the task itself; see docs ADR-14.)"""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  xsd:integer ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://doi.org/10.1002/bate.202200088> .      # becker-tschickardt-2023-bimtakt (the grid)
@@ -369,7 +369,7 @@ takt:slotSpan a owl:DatatypeProperty ;
         wagon' that genuinely needs two beats in every zone, one of takt planning's
         standard adjustment mechanisms. Defaults to 1 when absent. No rdfs:domain on
         purpose (ADR-17): assert on a takt:WagonType as the template default ('this
-        wagon always takes 2 takts'), override on an individual takt:TaktTask where
+        wagon always takes 2 takts'), override on an individual takt:Wagon where
         a single occurrence deviates. Effective span = task > wagonType > 1. The
         preferred fix in takt theory is still to re-cut the work so it fits one beat
         — a span > 1 is a deliberate, visible exception, not a workaround."""@en ;
@@ -395,8 +395,8 @@ takt:isMilestone a owl:DatatypeProperty ;
     rdfs:comment """TRUE for milestone cells (e.g. 'Inflytt', 'Dem. bygghiss'). A
         milestone is not strictly 'one wagon in one zone for one takt' — flagging it
         on the task is a documented pragmatism mirroring IfcTask.IsMilestone, kept so
-        every cell of the plan grid stays one TaktTask."""@en ;
-    rdfs:domain takt:TaktTask ;
+        every cell of the plan grid stays one Wagon."""@en ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  xsd:boolean ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://technical.buildingsmart.org/standards/ifc/ifc-formats/ifcowl/> .
@@ -408,7 +408,7 @@ takt:isBuffer a owl:DatatypeProperty ;
         from LBMS-style planning (capacity buffers, not time buffers), so a takt
         vocabulary must be able to say 'this cell is a buffer'. A buffer task
         typically instantiates no wagon type."""@en ;
-    rdfs:domain takt:TaktTask ;
+    rdfs:domain takt:Wagon ;
     rdfs:range  xsd:boolean ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://iglc.net/Papers/Details/1181> ,        # frandson-2015-lbms-vs-takt (capacity buffers)
@@ -451,12 +451,12 @@ takt:trade a owl:DatatypeProperty ;
 #    takt:partOfProcess (task -> train), and the train nests onward
 #    (train -> process) with the same property.
 #
-# 4. PLAN MEMBERSHIP is dtc:hasProcess (TaktGraph -> TaktTask), reused from DTC v2's
+# 4. PLAN MEMBERSHIP is dtc:hasProcess (TaktGraph -> Wagon), reused from DTC v2's
 #    ConstructionSchedule. In a TGraph export, membership is also implicit in
 #    top:hasNode / top:hasRelationship.
 #
 # 4b. THE OVERRIDE CASCADE (ADR-17). The plan is a template, not a straitjacket:
-#     taktDuration resolves task > train > wagonType > plan; slotSpan resolves
+#     taktDuration resolves wagon > train > wagonType > plan; slotSpan resolves
 #     task > wagonType > 1; crew resolves task.performedBy > wagonType.defaultCrew.
 #     Resolution is a consumer-side COALESCE (canonical form:
 #     queries/cq11-effective-beat.rq) — deliberately NOT an OWL axiom, so no

@@ -38,7 +38,7 @@ reserved keys; everything else becomes a literal-valued triple.
 | key | example | consumed by |
 |---|---|---|
 | `uri` | `"ex:t_51_B51"` | Becomes the RDF **subject** verbatim when it contains `:` (`Ontology._uri_for_topology`, Ontology.py:590–593; `TGraph._OntologySubjectFromDictionary`, TGraph.py:16261–16266). Without it, subjects are minted from guid/id/label — set it explicitly for stable round-trips. |
-| `ontology_class` | `"takt:TaktTask"` | Becomes the `rdf:type` **object verbatim** — any QName works, not just `top:` (`Ontology.Triples`: `triples.append((subject, "rdf:type", ontologyClass))`, Ontology.py:1459–1460). |
+| `ontology_class` | `"takt:Wagon"` | Becomes the `rdf:type` **object verbatim** — any QName works, not just `top:` (`Ontology.Triples`: `triples.append((subject, "rdf:type", ontologyClass))`, Ontology.py:1459–1460). |
 | `label` | `"5.1 @ B5:1"` | `rdfs:label` literal (Ontology.py:1466–1467). |
 | `category` | `"space"` | `top:category` literal (Ontology.py:1469–1470). Must be set **explicitly** for takt classes — `CategoryByClass` has no `takt:` entries. |
 | any QName key | `"takt:slot": 1` | Key containing `:` passes through `PropertyQName` **unprefixed** and becomes the predicate verbatim (Ontology.py:1688–1689): `ex:t_51_B51 takt:slot "1"^^xsd:integer`. |
@@ -47,7 +47,7 @@ reserved keys; everything else becomes a literal-valued triple.
 `ontology_class`, `ontology_uri`, `label`, `category`, `uri` are the exporter's
 skip-set (Ontology.py:1489–1495) — they are consumed structurally, never
 re-emitted as literals. Set class + derived `ontology_uri` in one call with
-`TGraph.SetOntologyClass(g, "takt:TaktTask", element="vertex", index=i)`
+`TGraph.SetOntologyClass(g, "takt:Wagon", element="vertex", index=i)`
 (TGraph.py:18868–18894; the URI derivation needs the prefix registered, §c), or
 simply put `ontology_class` in the `AddVertex` dictionary.
 
@@ -174,7 +174,7 @@ for rec in TGraph.Edges(g):                               # phase 2: active edge
             triples.append((o, d["inverse_predicate"], s))
 for rec in TGraph.Vertices(g):                            # plan membership (see §b)
     vd = rec.get("dictionary", {})
-    if vd.get("ontology_class") == "takt:TaktTask" and plan_uri and vd.get("uri"):
+    if vd.get("ontology_class") == "takt:Wagon" and plan_uri and vd.get("uri"):
         triples.append((plan_uri, "dtc:hasProcess", vd["uri"]))
 ttl = Ontology.TurtleFromTriples(triples)                 # header from Ontology.NAMESPACES (§c)
 ```
@@ -231,7 +231,7 @@ selectively (Ontology.py:2508–2768):
   (Ontology.py:2610–2617). A plain takt A-Box (`examples/takt-train-demo.ttl`)
   is not loadable this way at all.
 - **Only `top:`-prefixed `rdf:type`s repopulate `ontology_class`**
-  (`if … q.startswith("top:")`, Ontology.py:2626). `rdf:type takt:TaktTask`
+  (`if … q.startswith("top:")`, Ontology.py:2626). `rdf:type takt:Wagon`
   survives in the RDF file but is dropped from the reloaded dictionary.
 - **Only Literal-valued predicates are copied into dictionaries**
   (Ontology.py:2647–2650). The direct takt object triples appended in §d are

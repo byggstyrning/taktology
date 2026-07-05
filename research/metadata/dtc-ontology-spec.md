@@ -47,7 +47,7 @@ architecture paper).
 ## How it shapes taktology (intertwine)
 **taktology v0.5.0 aligns to v2** — [`docs/03-decisions.md`](../../docs/03-decisions.md)
 **ADR-12**, superseding the v0.3.x–v0.4.x v1 alignment (ADR-7):
-`TaktTask ⊑ dtc:AsPlannedProcess` (v1's `WorkPackage` parent is gone in v2),
+`Wagon ⊑ dtc:AsPlannedProcess` (v1's `WorkPackage` parent is gone in v2),
 `TaktZone ⊑ dtc:AsPlannedWorkingZone`, `Crew ⊑ dtc:AsPlannedWorkerCrew`,
 `TaktGraph ⊑ dtc:ConstructionSchedule` with plan membership via
 `dtc:hasProcess` (ADR-15), `performedIn ⊑ dtc:isPerformedIn`,

@@ -27,7 +27,7 @@ node_types:
   Task:                           # one occurrence: wagon x zone (x takt)
     ifc_class: IfcTask
     lean_term: "wagon (occurrence) / takt cell"
-    takt_term: takt:TaktTask
+    takt_term: takt:Wagon
     properties:
       id: str                     # "5.2@B5:1"
       slot: int                   # scheduled takt slot (week)

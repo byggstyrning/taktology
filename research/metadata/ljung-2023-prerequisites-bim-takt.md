@@ -38,6 +38,6 @@ control-focused study) and a component of the TBS licentiate
 ## How it shapes taktology (intertwine)
 Substantiates that a BIM-linked takt schedule needs a **shared object↔schedule structure** —
 exactly what taktology provides via `actsOn`/`performedIn` (task↔element/zone),
-`partOfProcess` (task↔process), and the `WagonType`/`TaktTask` type-occurrence split. The
+`partOfProcess` (task↔process), and the `WagonType`/`Wagon` type-occurrence split. The
 "takt structure for *all* BIM-models" framing supports the single-graph stance (ADR-6) and
 the ingester plan's element-classification step.

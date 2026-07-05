@@ -10,7 +10,7 @@ schema entities — and they do **not** map one-to-one.
 |---|---|---|
 | **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The demo plan's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `bot:Zone` + `dtc:AsPlannedWorkingZone` (relatedMatch `top:Zone`) |
 | **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer; carries the template defaults `takt:trade`, `takt:slotSpan`, `takt:defaultCrew`) |
-| **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` ⊑ `dtc:AsPlannedProcess` |
+| **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:Wagon` ⊑ `dtc:AsPlannedProcess` |
 | **Train** | The ordered convoy of wagons. Structurally the `hasSuccessor` chain (a path). | the chain; **plus** optional `takt:Train` ⊑ `dtc:AsPlannedProcess` — an addressable handle minted *only* to carry a train-scope override (its own `taktDuration`) or a name (ADR-17) |
 | **Takt time** (the beat) | The fixed rhythm (1 week in the demo plan) each wagon occupies. | *no class* — `takt:taktDuration` on the plan (overridable per train / wagon / task, ADR-17), `takt:slot` on each task; dates derive from `takt:planStart` (ADR-14) |
 | **The plan** (the grid) | The coloured wagon × zone grid itself, as one artifact. | `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule` |
@@ -18,7 +18,7 @@ schema entities — and they do **not** map one-to-one.
 
 ## "Wagon" and "train" are not single entities — the key subtlety
 
-- A **wagon** is really a *pair*: the `WagonType` (definition) and its many `TaktTask`
+- A **wagon** is really a *pair*: the `WagonType` (definition) and its many `Wagon`
   occurrences (one per zone), linked by `instantiates`. When a planner says "wagon
   5.2" they mean the type; when they point at a cell, an occurrence. Same word, two
   levels.
@@ -56,7 +56,7 @@ relationship-entity live at different metamodel levels).
 | `takt:` term | DTC v2 (reused) | IFC |
 |---|---|---|
 | `WagonType` | — *(DTC has no type layer)* | closeMatch `IfcTaskType` |
-| `TaktTask` | ⊑ `dtc:AsPlannedProcess` | closeMatch `IfcTask` |
+| `Wagon` | ⊑ `dtc:AsPlannedProcess` | closeMatch `IfcTask` |
 | `TaktZone` | ⊑ `dtc:AsPlannedWorkingZone` **+** ⊑ `bot:Zone` (relatedMatch `top:Zone`) | closeMatch `IfcSpatialZone` |
 | `Crew` | ⊑ `dtc:AsPlannedWorkerCrew` | closeMatch `IfcCrewResource` |
 | `TaktGraph` | ⊑ `dtc:ConstructionSchedule` (+ ⊑ `top:KnowledgeGraph`); membership = `dtc:hasProcess` | closeMatch `IfcWorkSchedule` |
@@ -66,7 +66,7 @@ relationship-entity live at different metamodel levels).
 | `actsOn` (WHAT) | ⊑ `dtc:hasTarget` | seeAlso `IfcRelAssignsToProduct` (product) |
 | `performedBy` | seeAlso `dtc:hasResourceAssignment`/`requiresResource` (reified) | seeAlso `IfcRelAssignsToProcess` |
 | `hasSuccessor` (+ `SameZone`/`SameWagon`) | seeAlso `dtc:requiresProcess` (reified) | seeAlso `IfcRelSequence` |
-| `partOfProcess` | domain `TaktTask` ∪ `Train`; range `dtc:Process`; seeAlso `dtc:isDecomposedInto`/`hasChildProcess` | seeAlso `IfcRelNests` |
+| `partOfProcess` | domain `Wagon` ∪ `Train`; range `dtc:Process`; seeAlso `dtc:isDecomposedInto`/`hasChildProcess` | seeAlso `IfcRelNests` |
 | `defaultCrew` | — *(template default; `performedBy` overrides per task)* | — |
 | `taktDuration` / `slot` / `planStart` | — *(the rhythm; dates derive from it)* | — *(conceptual pointer: `IfcTaskTime`)* |
 | `isMilestone` | — *(cell flag)* | `IfcTask.IsMilestone` (attribute) |

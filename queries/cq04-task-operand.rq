@@ -17,7 +17,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?taskLabel ?elementLabel
 WHERE {
-    ?task a takt:TaktTask ;
+    ?task a takt:Wagon ;
           takt:actsOn ?element .
     OPTIONAL { ?task    rdfs:label ?taskLabel }
     OPTIONAL { ?element rdfs:label ?elementLabel }

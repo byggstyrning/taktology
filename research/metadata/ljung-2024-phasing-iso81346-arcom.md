@@ -28,5 +28,5 @@ Not takt-specific — it's the identifier/interoperability substrate.
 **Directly relevant to taktology's open identifier/namespace item.** taktology currently
 relies on `w3id.org/taktology` IRIs and ad-hoc zone ids (e.g. `B5:1`); ISO 81346 offers a
 principled, standards-based scheme for stable **zone/phase identifiers** — a candidate for
-how `takt:TaktZone` / `takt:TaktTask` instances should be named for cross-discipline
+how `takt:TaktZone` / `takt:Wagon` instances should be named for cross-discipline
 interoperability. Flagged in [INDEX.md](../INDEX.md) Cluster F overlap note.

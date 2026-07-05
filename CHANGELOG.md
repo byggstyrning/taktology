@@ -19,6 +19,26 @@ Entries below 0.5.0 are reconstructed from git history and the ADRs in
 not follow it (0.3.1 retargeted an alignment as a patch; 0.4.1 removed terms as
 a patch). Versions before 0.2.0 predate this repository and are not tracked.
 
+## [0.7.0] — 2026-07-05
+
+The lingo release: the occurrence class takes the domain's own word (ADR-18).
+One breaking rename, no semantic change. Term count unchanged (22).
+
+### Changed
+
+- **BREAKING:** `takt:TaktTask` → **`takt:Wagon`** (label "Wagon"). The corpus
+  audit found "wagon" is the cell-level term across the takt literature
+  (*Taktwagen*; work packages → takt wagons → takt trains), while "takt task"
+  appears in no source — it was scheduling lingo imported via the `IfcTask`
+  alignment. Occurrence/type naming now follows IFC's own convention:
+  bare name for the occurrence, `Type` suffix for the template
+  (`Wagon`/`WagonType` ≙ `IfcTask`/`IfcTaskType`). All alignments unchanged
+  (`⊑ dtc:AsPlannedProcess`, `≈ ifc:IfcTask`).
+- Migration for v0.6.0 data: `s/takt:TaktTask/takt:Wagon/` — nothing else.
+- README diagrams are now emitted as **light + dark theme pairs** switched by a
+  `<picture prefers-color-scheme>` block, so they render natively on both
+  GitHub themes instead of showing light panels on dark.
+
 ## [0.6.0] — 2026-07-03
 
 The flexible-takt release: the plan becomes a structured **template with scoped
