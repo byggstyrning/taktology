@@ -684,34 +684,171 @@ function render3D(m) {
   const bind = (id, key) => document.getElementById(id).addEventListener('change', e => { discOn[key] = e.target.checked; update(); });
   bind('tglStruct', 'structural'); bind('tglArch', 'architectural'); bind('tglMep', 'mep');
 
-  // ---- picking
+  // ---- picking (click = select, move = hover)
   const ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
-  renderer.domElement.addEventListener('click', ev => {
+  const pickAt = (ev) => {
     const r = renderer.domElement.getBoundingClientRect();
     ptr.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ptr, camera);
     const hits = ray.intersectObjects(pickables.filter(o => o.visible && o.parent?.visible !== false), false)
       .sort((a, b) => (a.object.userData.iri?.includes('zone_') ? 1 : 0) - (b.object.userData.iri?.includes('zone_') ? 1 : 0));
-    if (!hits.length) return select(null);
-    const iri = hits[0].object.userData.iri;
+    return hits.length ? hits[0].object.userData.iri : null;
+  };
+  renderer.domElement.addEventListener('click', ev => {
+    const iri = pickAt(ev);
+    if (!iri) return select(null);
     if (iri.includes('zone_')) {
       const active = m.tasks.find(t => t.zone === iri && t.slot === state.slot);
       return select(active ? active.iri : iri);
     }
     select(iri);
   });
+  renderer.domElement.addEventListener('mousemove', ev => {
+    const iri = pickAt(ev);
+    if (iri) { hover(iri); tipShow(m, iri, ev.clientX, ev.clientY); }
+    else { if (state.hover) hover(null); tipHide(); }
+  });
+  renderer.domElement.addEventListener('mouseleave', () => { hover(null); tipHide(); });
+
+  /* ======================================================================
+     Graph overlay — Graph Studio strategy (nobel-project-hub):
+     every graph node gets a WORLD anchor — geometry nodes at their mesh
+     centroids, geometry-less nodes propagated from what they relate to
+     (tasks fan out inside their zone), organizational nodes (wagons, crews,
+     process, plan) stacked NORTH of the building footprint at level gaps —
+     then projected to screen every frame as an SVG overlay.
+  ====================================================================== */
+  const overlaySvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  overlaySvg.id = 'overlaySvg';
+  mount.appendChild(overlaySvg);
+
+  const anchors = new Map();
+  {
+    const footprint = Math.max(BLD.W, BLD.D);
+    const gap = Math.max(6, footprint * 0.12);            // GS: PARENT_NORTH_MIN_GAP, 12% of footprint
+    // zones + tasks fanned inside their zone (GS: fan leaves so they stay visible)
+    m.zones.forEach(z => {
+      const mm = z.iri.match(/zone_L(\d)_([WE])/); if (!mm) return;
+      const zb = zoneBox(+mm[1], mm[2]);
+      anchors.set(z.iri, new THREE.Vector3((zb.x0 + zb.x1) / 2, zb.y0 + (zb.y1 - zb.y0) * .62, (zb.z0 + zb.z1) / 2));
+      const zt = m.tasks.filter(t => t.zone === z.iri).sort((a, b) => a.slot - b.slot);
+      zt.forEach((t, i) => anchors.set(t.iri, new THREE.Vector3(
+        zb.x0 + 2 + (i + .5) * (zb.x1 - zb.x0 - 4) / zt.length,
+        zb.y0 + 2.5, (zb.z0 + zb.z1) / 2 + 2.5)));
+    });
+    // element nodes at their mesh centroids
+    const box = new THREE.Box3();
+    fitout.forEach(f => { box.setFromObject(f.group); if (!box.isEmpty()) anchors.set(f.iri, box.getCenter(new THREE.Vector3())); });
+    pickables.forEach(o => { const iri = o.userData.iri;
+      if (iri && !anchors.has(iri) && !iri.includes('zone_')) anchors.set(iri, o.position.clone()); });
+    // organizational stack, north of the footprint (negative z), level by kind
+    const spread = (arr, y, z) => arr.forEach((n, i) =>
+      anchors.set(n.iri, new THREE.Vector3(3 + (i + .5) * (BLD.W - 6) / arr.length, y, z)));
+    spread(m.wagons, 2.2, -gap);
+    spread(m.crews, 6.2, -gap);
+    spread(m.processes, 4.2, -2 * gap);
+    anchors.set(m.plan.iri, new THREE.Vector3(BLD.W / 2, 8.6, -2 * gap));
+  }
+
+  // reproject only when the camera or app state changed (the SVG writes are
+  // the expensive part; an idle orbit doesn't need per-frame DOM churn)
+  let overlayDirty = true;
+  controls.addEventListener('change', () => { overlayDirty = true; });
+  onChange(() => { overlayDirty = true; });
+
+  let ovNodes = [], ovLinks = [];
+  const rebuildOverlay = () => {
+    overlaySvg.innerHTML = '';
+    const { nodes, links } = graphData(m);
+    ovLinks = links.filter(l => anchors.has(l.source) && anchors.has(l.target)).map(l => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      const st = EDGE_STYLE[l.kind];
+      el.setAttribute('stroke', st.color);
+      el.setAttribute('stroke-width', l.kind.startsWith('succ') ? 1.8 : 1.25);   // GS: 1.25
+      if (st.dashed) el.setAttribute('stroke-dasharray', '5 4');
+      overlaySvg.appendChild(el);
+      return { ...l, el };
+    });
+    ovNodes = nodes.filter(n => anchors.has(n.id)).map(n => {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      el.setAttribute('fill', n.color);
+      el.setAttribute('stroke', 'rgba(220,228,240,.75)');
+      el.setAttribute('stroke-width', '1.2');
+      el.addEventListener('mouseenter', (e) => { hover(n.id); tipShow(m, n.id, e.clientX, e.clientY); });
+      el.addEventListener('mousemove', (e) => tipMove(e.clientX, e.clientY));
+      el.addEventListener('mouseleave', () => { hover(null); tipHide(); });
+      el.addEventListener('click', (e) => { e.stopPropagation(); select(n.id); });
+      overlaySvg.appendChild(el);
+      let txt = null;
+      if (n.label && n.kind !== 'task') {
+        txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.textContent = n.label;
+        txt.setAttribute('text-anchor', 'middle');
+        overlaySvg.appendChild(txt);
+      }
+      return { ...n, el, txt, world: anchors.get(n.id) };
+    });
+    overlayDirty = true;
+  };
+  rebuildOverlay();
+  MODE_TOGGLES.forEach(id => document.getElementById(id).addEventListener('change', rebuildOverlay));
+  const tglOverlay = document.getElementById('tglOverlay');
+  tglOverlay.addEventListener('change', () => {
+    overlaySvg.style.display = tglOverlay.checked ? '' : 'none';
+    overlayDirty = true;
+  });
+
+  const vp = new THREE.Vector3();
+  const projectOverlay = () => {
+    if (!tglOverlay.checked) return;
+    const w = mount.clientWidth, h = mount.clientHeight;
+    const focus = state.hover ?? state.selected;
+    const px = new Map();
+    for (const n of ovNodes) {
+      vp.copy(n.world).project(camera);
+      const visible = vp.z > -1 && vp.z < 1;
+      if (!visible) { n.el.style.display = 'none'; if (n.txt) n.txt.style.display = 'none'; continue; }
+      const x = (vp.x + 1) / 2 * w, y = (1 - vp.y) / 2 * h;
+      const dist = camera.position.distanceTo(n.world);
+      const r = Math.max(3, Math.min(9, 210 / dist)) * (n.kind === 'task' ? 1 : 1.25);
+      n.el.style.display = '';
+      n.el.setAttribute('cx', x); n.el.setAttribute('cy', y); n.el.setAttribute('r', r);
+      const off = isWaggedOff(m, n.id);
+      const dim = focus && n.id !== focus &&
+        !ovLinks.some(l => (l.source === focus && l.target === n.id) || (l.target === focus && l.source === n.id));
+      n.el.setAttribute('opacity', off ? .08 : dim ? .18 : .9);                  // GS: .85
+      n.el.setAttribute('stroke', n.id === focus ? '#fff' : 'rgba(220,228,240,.75)');
+      n.el.setAttribute('stroke-width', n.id === focus ? 2.4 : 1.2);
+      if (n.txt) {
+        n.txt.style.display = (off || dim) ? 'none' : '';
+        n.txt.setAttribute('x', x); n.txt.setAttribute('y', y - r - 4);
+      }
+      px.set(n.id, { x, y });
+    }
+    for (const l of ovLinks) {
+      const a = px.get(l.source), b = px.get(l.target);
+      if (!a || !b) { l.el.style.display = 'none'; continue; }
+      const off = isWaggedOff(m, l.source) || isWaggedOff(m, l.target);
+      const dim = focus && l.source !== focus && l.target !== focus;
+      l.el.style.display = '';
+      l.el.setAttribute('x1', a.x); l.el.setAttribute('y1', a.y);
+      l.el.setAttribute('x2', b.x); l.el.setAttribute('y2', b.y);
+      l.el.setAttribute('opacity', off ? .04 : dim ? .08 : .75);                 // GS: .75
+    }
+  };
 
   const update = () => {
     shell.forEach(s => { s.mesh.visible = discOn[s.discipline]; });
+    const focus = state.hover ?? state.selected;
     fitout.forEach(f => {
       const built = f.buildSlot <= state.slot;
-      const vis = discOn[f.discipline] && built;
-      f.group.visible = vis;
+      const wagOn = !isWaggedOff(m, f.iri);
+      f.group.visible = discOn[f.discipline] && built && wagOn;
       const active = f.buildSlot === state.slot;
-      const selHit = state.selected === f.iri;
+      const hit = focus === f.iri;
       f.group.children.forEach(ch => {
-        ch.material.emissive = new THREE.Color(selHit ? 0x5aa2e8 : active ? f.baseColor : 0x000000);
-        ch.material.emissiveIntensity = selHit ? .7 : active ? .5 : 0;
+        ch.material.emissive = new THREE.Color(hit ? 0x5aa2e8 : active ? f.baseColor : 0x000000);
+        ch.material.emissiveIntensity = hit ? .7 : active ? .5 : 0;
       });
     });
     m.zones.forEach(z => {
@@ -719,15 +856,15 @@ function render3D(m) {
       const t = m.wagonSlotInZone[z.iri]?.[state.slot];
       const w = t && m.wagonOf[t.wagon];
       let color = 0x8b96a5, opacity = .04;
-      if (t) {
+      if (t && !isWaggedOff(m, t.iri)) {
         if (t.isMilestone) { color = 0xc0392b; opacity = .28; }
         else if (t.isBuffer) { color = 0x6b7280; opacity = .16; }
         else if (w) { color = parseInt(w.color.slice(1), 16); opacity = .30; }
       }
       zm.mesh.material.color.setHex(color); zm.mesh.material.opacity = opacity;
-      const sel = state.selected === z.iri || (t && state.selected === t.iri);
-      zm.wire.material.color.setHex(sel ? 0xffffff : 0x3fa7a0);
-      zm.wire.material.opacity = sel ? .95 : .4;
+      const foc = focus === z.iri || (t && focus === t.iri);
+      zm.wire.material.color.setHex(foc ? 0xffffff : 0x3fa7a0);
+      zm.wire.material.opacity = foc ? .95 : .4;
     });
   };
   update(); onChange(update);
@@ -738,7 +875,18 @@ function render3D(m) {
     camera.aspect = w / h; camera.updateProjectionMatrix();
   };
   new ResizeObserver(resize).observe(mount); resize();
-  renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+  renderer.setAnimationLoop(() => {
+    // an uncaught exception here would silently kill the rAF chain — log instead
+    try {
+      controls.update();
+      renderer.render(scene, camera);
+      if (overlayDirty) { projectOverlay(); overlayDirty = false; }
+    } catch (e) {
+      console.error('render loop:', e);
+    }
+  });
+  // debug hook (headless screenshots of the WebGL canvas)
+  window.__viz = { renderer, scene, camera };
 }
 
 /* ========================================================================
@@ -763,13 +911,24 @@ function renderInspector(m) {
   draw(); onChange(draw);
 
   const lg = document.getElementById('legend');
-  lg.innerHTML = '<div class="paneltitle">Train (wagons)</div>' +
-    m.wagons.map(w => `<div class="row"><span class="sw" style="background:${w.color}"></span>${w.short} <small>· ${w.trade ?? ''}</small></div>`).join('') +
-    `<div class="row"><span class="sw" style="background:#c0392b"></span>milestone</div>
-     <div class="paneltitle" style="margin-top:10px">Flow</div>
-     <div class="row"><span class="sw line" style="background:#e07a6a"></span>same zone (Reading A)</div>
-     <div class="row"><span class="sw line" style="background:#6aa7e0"></span>same wagon (Reading B)</div>
-     <div class="row"><span class="sw line" style="background:#3fa7a0"></span>zone adjacency</div>`;
+  const drawLegend = () => {
+    lg.innerHTML = '<div class="paneltitle">Train (wagons) — click to toggle a mode</div>' +
+      m.wagons.map(w => `<div class="row mode${state.wagonOff.has(w.iri) ? ' modeoff' : ''}" data-wagon="${w.iri}">
+          <span class="sw" style="background:${w.color}"></span>${w.short} <small>· ${w.trade ?? ''}</small></div>`).join('') +
+      `<div class="row"><span class="sw" style="background:#c0392b"></span>milestone</div>
+       <div class="paneltitle" style="margin-top:10px">Flow</div>
+       <div class="row"><span class="sw line" style="background:#e07a6a"></span>same zone (Reading A)</div>
+       <div class="row"><span class="sw line" style="background:#6aa7e0"></span>same wagon (Reading B)</div>
+       <div class="row"><span class="sw line" style="background:#5aa2e8"></span>plan membership (dtc:hasProcess)</div>
+       <div class="row"><span class="sw line" style="background:#4e9e77"></span>process (partOfProcess)</div>
+       <div class="row"><span class="sw line" style="background:#3fa7a0"></span>zone adjacency</div>`;
+    lg.querySelectorAll('.row.mode').forEach(row => row.addEventListener('click', () => {
+      const w = row.dataset.wagon;
+      if (state.wagonOff.has(w)) state.wagonOff.delete(w); else state.wagonOff.add(w);
+      drawLegend(); emit();
+    }));
+  };
+  drawLegend();
 }
 
 /* ========================================================================
