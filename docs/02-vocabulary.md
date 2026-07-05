@@ -6,13 +6,13 @@ schema entities — and they do **not** map one-to-one.
 
 ## The terms
 
-| Takt / Lean term | What it is | In this repo (v0.5.0) |
+| Takt / Lean term | What it is | In this repo (v0.6.0) |
 |---|---|---|
 | **Takt zone** (track segment / station) | The spatial unit work flows through. A train "stops" at each zone for one takt. The demo plan's `B5:1`, `C5`, `A5:1`. | `takt:TaktZone` ⊑ `bot:Zone` + `dtc:AsPlannedWorkingZone` (relatedMatch `top:Zone`) |
-| **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer; carries `takt:trade`) |
+| **Wagon** (definition) | A single trade's work package as a reusable template — work content + crew + a fixed takt duration. The coloured numbers (5.1, 5.2, …) are wagon ids. | `takt:WagonType` (no DTC parent — fills DTC's missing type layer; carries the template defaults `takt:trade`, `takt:slotSpan`, `takt:defaultCrew`) |
 | **Wagon** (occurrence) | One cell: this trade, this zone, this takt. | `takt:TaktTask` ⊑ `dtc:AsPlannedProcess` |
-| **Train** | The ordered convoy of wagons. **Not an entity** — the `hasSuccessor` chain (a path). | *no class* — query the `takt:hasSuccessor` chain (subproperties pin the reading, below) |
-| **Takt time** (the beat) | The fixed rhythm (1 week in the demo plan) each wagon occupies. | *no class* — `takt:taktDuration` on the plan, `takt:slot` on each task; dates derive from `takt:planStart` (ADR-14) |
+| **Train** | The ordered convoy of wagons. Structurally the `hasSuccessor` chain (a path). | the chain; **plus** optional `takt:Train` ⊑ `dtc:AsPlannedProcess` — an addressable handle minted *only* to carry a train-scope override (its own `taktDuration`) or a name (ADR-17) |
+| **Takt time** (the beat) | The fixed rhythm (1 week in the demo plan) each wagon occupies. | *no class* — `takt:taktDuration` on the plan (overridable per train / wagon / task, ADR-17), `takt:slot` on each task; dates derive from `takt:planStart` (ADR-14) |
 | **The plan** (the grid) | The coloured wagon × zone grid itself, as one artifact. | `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule` |
 | **Crew** (the `SUB-xx` code) | The gang performing a wagon. | `takt:Crew` ⊑ `dtc:AsPlannedWorkerCrew` |
 
@@ -60,15 +60,18 @@ relationship-entity live at different metamodel levels).
 | `TaktZone` | ⊑ `dtc:AsPlannedWorkingZone` **+** ⊑ `bot:Zone` (relatedMatch `top:Zone`) | closeMatch `IfcSpatialZone` |
 | `Crew` | ⊑ `dtc:AsPlannedWorkerCrew` | closeMatch `IfcCrewResource` |
 | `TaktGraph` | ⊑ `dtc:ConstructionSchedule` (+ ⊑ `top:KnowledgeGraph`); membership = `dtc:hasProcess` | closeMatch `IfcWorkSchedule` |
+| `Train` | ⊑ `dtc:AsPlannedProcess` (optional override bearer; membership via `partOfProcess`) | — |
 | `instantiates` | — *(no type layer to link to)* | seeAlso `IfcRelDefinesByType` |
 | `performedIn` (WHERE) | ⊑ `dtc:isPerformedIn` | seeAlso `IfcRelAssignsToProduct` (location) |
 | `actsOn` (WHAT) | ⊑ `dtc:hasTarget` | seeAlso `IfcRelAssignsToProduct` (product) |
 | `performedBy` | seeAlso `dtc:hasResourceAssignment`/`requiresResource` (reified) | seeAlso `IfcRelAssignsToProcess` |
 | `hasSuccessor` (+ `SameZone`/`SameWagon`) | seeAlso `dtc:requiresProcess` (reified) | seeAlso `IfcRelSequence` |
-| `partOfProcess` | range `dtc:Process`; seeAlso `dtc:isDecomposedInto`/`hasChildProcess` | seeAlso `IfcRelNests` |
+| `partOfProcess` | domain `TaktTask` ∪ `Train`; range `dtc:Process`; seeAlso `dtc:isDecomposedInto`/`hasChildProcess` | seeAlso `IfcRelNests` |
+| `defaultCrew` | — *(template default; `performedBy` overrides per task)* | — |
 | `taktDuration` / `slot` / `planStart` | — *(the rhythm; dates derive from it)* | — *(conceptual pointer: `IfcTaskTime`)* |
 | `isMilestone` | — *(cell flag)* | `IfcTask.IsMilestone` (attribute) |
 | `isBuffer` / `trade` | — *(takt-specific)* | — |
+| `slotSpan` | — *(multi-takt wagons; template default on `WagonType`, task override; ADR-17)* | — |
 
 Three notes. (1) IFC overloads `IfcRelAssignsToProduct` for **both** location and
 operand — which is why `performedIn` and `actsOn` both point at it; the takt layer

@@ -168,3 +168,21 @@ The buffer gets a date like any other cell — it occupies its slot.
 Empty result: neither example contains a milestone cell, and the flowline
 demo's explicit `isMilestone false` correctly does not match. The query is the
 reusable pattern for real plans.
+
+### CQ11 — the effective beat / span / crew after the override cascade (ADR-17, v0.6.0)
+
+The plan is a template; values asserted lower in the cascade shadow the defaults
+above them. [`queries/cq11-effective-beat.rq`](../queries/cq11-effective-beat.rq)
+is the canonical COALESCE resolution — beat `task > train > wagonType > plan`,
+span `task > wagonType > 1`, crew `performedBy > defaultCrew`. Against
+[`examples/takt-override-demo.ttl`](../examples/takt-override-demo.ttl):
+
+| task | effectiveBeat | effectiveSpan | effectiveCrew | winning level |
+|---|---|---|---|---|
+| `t_screed_Z1` | `P5D` | 2 | SUB-A | plan · wagon · wagon |
+| `t_screed_Z2` | `P5D` | 3 | SUB-B | plan · **task** · **task** |
+| `t_mep_Z1` | `P3D` | 1 | SUB-M | **train** · default · wagon |
+| `t_mep_Z2` | `P2D` | 1 | SUB-M | **task** (beats even its train) · default · wagon |
+
+A change that breaks this resolution order is breaking: the cascade is the
+contract that keeps the template structured *and* overridable.

@@ -19,6 +19,40 @@ Entries below 0.5.0 are reconstructed from git history and the ADRs in
 not follow it (0.3.1 retargeted an alignment as a patch; 0.4.1 removed terms as
 a patch). Versions before 0.2.0 predate this repository and are not tracked.
 
+## [0.6.0] — 2026-07-03
+
+The flexible-takt release: the plan becomes a structured **template with scoped
+overrides** (ADR-17). 19 → 22 terms (6 classes, 9 object properties, 7 datatype
+properties). Non-breaking — v0.5.0 plans conform unchanged; all additions are
+optional.
+
+### Added
+
+- `takt:Train` (⊑ `dtc:AsPlannedProcess`) — an *optional* addressable grouping
+  for one train, minted only when the train must carry something (typically its
+  own `taktDuration`). The `hasSuccessor` chain remains the canonical train
+  structure. Membership reuses `takt:partOfProcess` (task → train), and the
+  train nests onward (train → process) with the same property.
+- `takt:slotSpan` (integer, domain-free, default 1) — multi-takt "double
+  wagons": template default on the `WagonType`, per-occurrence override on the
+  `TaktTask`. `takt:slot` is now documented as the *entry* slot; a task
+  occupies `[slot, slot + slotSpan − 1]`.
+- `takt:defaultCrew` (`WagonType` → `Crew`) — the wagon table's crew column as
+  a template default; `performedBy` overrides it per task.
+- The **override cascade**, documented in the T-Box and resolvable with
+  [`queries/cq11-effective-beat.rq`](queries/cq11-effective-beat.rq):
+  beat `task > train > wagonType > plan`; span `task > wagonType > 1`;
+  crew `performedBy > defaultCrew`. Deliberately a consumer-side COALESCE,
+  not an OWL axiom.
+- [`examples/takt-override-demo.ttl`](examples/takt-override-demo.ttl) — every
+  cascade level exercised once; SHACL shapes for the new terms
+  (max-cardinality/typing only — no new minimums).
+
+### Changed
+
+- `takt:partOfProcess` domain widened from `TaktTask` to `TaktTask ∪ Train`
+  (a train nests into the wider process with the same property).
+
 ## [0.5.0] — 2026-07-01
 
 The consumability release: alignments verified against pinned upstream

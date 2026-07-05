@@ -441,3 +441,55 @@ than growing a cell-role class hierarchy.
 minimal, every addition closing a verified finding with corpus grounding. SHACL shapes
 (`shapes/takt-shapes.ttl`) encode the conventions (buffers don't instantiate; slots
 are ≥ 1; same-zone successors share a zone; same-wagon successors share a wagon type).
+
+---
+
+## ADR-17 — Flexible takt: the template/override cascade; `Train` returns as an optional override bearer (v0.6.0)
+
+**Decision.** Make the plan a **structured template with scoped overrides**, not a
+rigid grid. Three additions and one convention:
+
+1. **`takt:Train`** (⊑ `dtc:AsPlannedProcess`) — an *optional*, addressable grouping
+   for one train. The `hasSuccessor` chain **remains the canonical train structure**;
+   mint a Train individual only when the train must *carry* something — typically its
+   own `taktDuration`. Membership reuses `takt:partOfProcess` (task → train), and
+   trains nest onward (train → process) with the same property — no new membership
+   machinery.
+2. **`takt:slotSpan`** (integer, domain-free, default 1) — the "double wagon" that
+   genuinely occupies several consecutive beats: template default on the
+   `WagonType`, per-occurrence override on the `TaktTask`.
+3. **`takt:defaultCrew`** (`WagonType` → `Crew`) — the wagon table's crew column as
+   the template default; occurrence-level `performedBy` overrides it.
+4. **The cascade** (most-specific-wins), resolved by consumer-side COALESCE — the
+   canonical query is `queries/cq11-effective-beat.rq`:
+   - beat: `TaktTask` > `Train` > `WagonType` > `TaktGraph`
+   - span: `TaktTask` > `WagonType` > 1
+   - crew: `performedBy` > `defaultCrew`
+
+**Why.** Real takt plans are never uniform: the MEP train runs a 3-day beat inside a
+5-day plan, one wagon always needs two takts, one occurrence gets a different crew.
+v0.5.0 could express per-task beat overrides (that is why `taktDuration` was left
+domain-free) but had **no bearer for train-scope overrides** — a train was only a
+path, and you cannot annotate a path. Making `Train` a `dtc:AsPlannedProcess` keeps
+it level-correct in DTC (a composite planned process) and gets membership for free.
+Corpus grounding: the three-level method runs different rhythms per level
+(`dlouhy-2016`), takt theory's adjustment mechanisms include beat and wagon-duration
+changes (`binninger-2017`), and the wagon table carries a crew column
+(`becker-tschickardt-2023`).
+
+**Why the cascade is NOT an OWL axiom.** OWL has no defaults or overrides; encoding
+them axiomatically would either be wrong (a reasoner would merge values, not shadow
+them) or drag in non-monotonic machinery. A documented COALESCE keeps every level
+optional, keeps reasoners silent on project-specific rules, and keeps the template
+honest: what is asserted at plan level is a *default*, what is asserted lower is a
+*deviation* — visible, queryable, auditable.
+
+**Supersession note.** This partially reverses v0.3.0's "no Train class"
+(ADR-7): that decision assumed the train never needed to carry data. The override
+requirement invalidates the assumption; the *structural* half of the decision (the
+chain is the train) stands.
+
+**Consequences.** 19 → 22 terms (6 classes, 9 object, 7 datatype). Plans without
+overrides look exactly like v0.5.0 plans (all three additions are optional; SHACL
+adds only max-cardinality/typing checks, no minimums). `slot` is now documented as
+the *entry* slot; a task occupies `[slot, slot + slotSpan − 1]`.

@@ -1,0 +1,109 @@
+# =============================================================================
+# Worked A-Box — FLEXIBLE TAKT: the template/override cascade (ADR-17)
+# Conforms to ontology/takt.ttl v0.6.0.
+#
+# One plan, every override level exercised exactly once:
+#
+#   plan beat        P5D                        (the template default)
+#   ├─ MEP train     P3D   <- takt:Train override (a train with its own rhythm)
+#   ├─ screed wagon  slotSpan 2, defaultCrew A  <- WagonType template values
+#   │   ├─ t_screed_Z1   (inherits: span 2, crew A, plan beat P5D)
+#   │   └─ t_screed_Z2   performedBy crew B, slotSpan 3   <- task-level overrides
+#   └─ t_mep_Z1          taktDuration P2D       <- task override beats even its train
+#
+# Effective values resolve most-specific-wins (queries/cq11-effective-beat.rq):
+#   beat:  task > train > wagonType > plan
+#   span:  task > wagonType > 1
+#   crew:  task.performedBy > wagonType.defaultCrew
+# =============================================================================
+
+@prefix takt: <https://w3id.org/taktology#> .
+@prefix dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#> .
+@prefix bot:  <https://w3id.org/bot#> .
+@prefix ex:   <https://w3id.org/taktology/examples/override#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# --- THE PLAN — carries the template defaults -----------------------------------
+ex:plan a takt:TaktGraph ;
+    rdfs:label "Override demo plan"@en ;
+    takt:taktDuration "P5D"^^xsd:duration ;      # plan-wide beat: one working week
+    takt:planStart    "2024-04-01"^^xsd:date ;
+    dtc:hasProcess ex:t_screed_Z1 , ex:t_screed_Z2 , ex:t_mep_Z1 , ex:t_mep_Z2 .
+
+# --- THE ON-SITE PROCESS + A TRAIN WITH ITS OWN RHYTHM ---------------------------
+ex:process_fitout a dtc:Process ;
+    rdfs:label "Fit-out process"@en .
+
+# The MEP train runs a 3-day beat inside the 5-day plan. The Train individual
+# exists ONLY to carry that override — the train's structure is still the
+# hasSuccessor chain between its tasks.
+ex:train_mep a takt:Train ;
+    rdfs:label "MEP train"@en ;
+    takt:taktDuration "P3D"^^xsd:duration ;
+    takt:partOfProcess ex:process_fitout .       # trains nest onward the same way
+
+# --- WAGON TYPES — the template layer --------------------------------------------
+ex:wagon_screed a takt:WagonType ;
+    rdfs:label "6.1 Screed"@en ;
+    takt:trade "flooring" ;
+    takt:slotSpan 2 ;                            # a double wagon: needs 2 beats per zone
+    takt:defaultCrew ex:crew_A .                 # the wagon table's crew column
+
+ex:wagon_mep a takt:WagonType ;
+    rdfs:label "4.1 MEP rough-in"@en ;
+    takt:trade "mep" ;
+    takt:defaultCrew ex:crew_M .
+
+# --- CREWS -----------------------------------------------------------------------
+ex:crew_A a takt:Crew ; rdfs:label "SUB-A" .
+ex:crew_B a takt:Crew ; rdfs:label "SUB-B" .
+ex:crew_M a takt:Crew ; rdfs:label "SUB-M" .
+
+# --- ZONES -----------------------------------------------------------------------
+ex:zone_Z1 a takt:TaktZone ;
+    rdfs:label "Z1" ;
+    bot:adjacentZone ex:zone_Z2 .
+ex:zone_Z2 a takt:TaktZone ;
+    rdfs:label "Z2" .
+
+# =============================================================================
+# THE CELLS
+# =============================================================================
+
+# Inherits everything from its templates: span 2 (wagon), crew A (wagon),
+# beat P5D (plan). Occupies slots 1-2.
+ex:t_screed_Z1 a takt:TaktTask ;
+    rdfs:label "Screed @ Z1" ;
+    takt:instantiates ex:wagon_screed ;
+    takt:performedIn  ex:zone_Z1 ;
+    takt:slot 1 ;
+    takt:hasSuccessorSameWagon ex:t_screed_Z2 .
+
+# Task-level overrides win: crew B (not the wagon's crew A), span 3 (not the
+# wagon's 2). Occupies slots 3-5.
+ex:t_screed_Z2 a takt:TaktTask ;
+    rdfs:label "Screed @ Z2 (deviation)" ;
+    takt:instantiates ex:wagon_screed ;
+    takt:performedIn  ex:zone_Z2 ;
+    takt:slot 3 ;
+    takt:performedBy  ex:crew_B ;                # overrides wagon_screed's defaultCrew
+    takt:slotSpan 3 .                            # this one occurrence needs 3 beats
+
+# Rides the MEP train: effective beat P3D (train override), crew M (wagon default).
+ex:t_mep_Z1 a takt:TaktTask ;
+    rdfs:label "MEP @ Z1" ;
+    takt:instantiates ex:wagon_mep ;
+    takt:performedIn  ex:zone_Z1 ;
+    takt:partOfProcess ex:train_mep ;            # membership in the train
+    takt:slot 1 ;
+    takt:hasSuccessorSameWagon ex:t_mep_Z2 .
+
+# Task override beats even its train: P2D (not the train's P3D, not the plan's P5D).
+ex:t_mep_Z2 a takt:TaktTask ;
+    rdfs:label "MEP @ Z2 (compressed)" ;
+    takt:instantiates ex:wagon_mep ;
+    takt:performedIn  ex:zone_Z2 ;
+    takt:partOfProcess ex:train_mep ;
+    takt:slot 2 ;
+    takt:taktDuration "P2D"^^xsd:duration .

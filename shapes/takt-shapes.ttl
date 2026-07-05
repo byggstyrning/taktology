@@ -187,3 +187,59 @@ takt:CrewShape a sh:NodeShape ;
         sh:severity sh:Warning ;
         sh:message "Crew has no rdfs:label — give it the crew code used on the plan."@en ;
     ] .
+
+# =============================================================================
+# v0.6.0 — flexible-takt overrides (ADR-17). All optional; shapes only keep
+# overrides well-typed and single-valued per bearer.
+# =============================================================================
+takt:TrainShape a sh:NodeShape ;
+    sh:targetClass takt:Train ;
+    sh:name "Train (optional override bearer)"@en ;
+    sh:property [
+        sh:path takt:taktDuration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:duration ;
+        sh:message "A train carries at most one beat override (takt:taktDuration, xsd:duration — P7D, never P1W)."@en ;
+    ] , [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:severity sh:Warning ;
+        sh:message "Train has no rdfs:label — a train minted as an override bearer should be nameable ('the MEP train')."@en ;
+    ] .
+
+takt:TaskOverrideShape a sh:NodeShape ;
+    sh:targetClass takt:TaktTask ;
+    sh:name "Task-level overrides"@en ;
+    sh:property [
+        sh:path takt:slotSpan ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 1 ;
+        sh:message "takt:slotSpan on a task is a single integer >= 1 (consecutive beats the task occupies)."@en ;
+    ] , [
+        sh:path takt:taktDuration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:duration ;
+        sh:message "A task carries at most one beat override (takt:taktDuration)."@en ;
+    ] .
+
+takt:WagonTemplateShape a sh:NodeShape ;
+    sh:targetClass takt:WagonType ;
+    sh:name "Wagon-type template defaults"@en ;
+    sh:property [
+        sh:path takt:slotSpan ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 1 ;
+        sh:message "takt:slotSpan on a wagon type is a single integer >= 1 (template default; task-level overrides)."@en ;
+    ] , [
+        sh:path takt:defaultCrew ;
+        sh:maxCount 1 ;
+        sh:class takt:Crew ;
+        sh:message "takt:defaultCrew is a single takt:Crew (the wagon table's crew column; performedBy overrides per task)."@en ;
+    ] , [
+        sh:path takt:taktDuration ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:duration ;
+        sh:message "A wagon type carries at most one beat override (takt:taktDuration)."@en ;
+    ] .

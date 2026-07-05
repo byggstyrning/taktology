@@ -1,0 +1,45 @@
+# CQ11 — What is the EFFECTIVE beat, span and crew of every task, after the
+#         override cascade (ADR-17)?
+#
+# The plan is a template: values asserted lower in the cascade shadow the
+# defaults above them. Resolution is a plain COALESCE — deliberately not an
+# OWL axiom, so the vocabulary never fights a project-specific rule.
+#
+#   beat:  task.taktDuration > train.taktDuration > wagonType.taktDuration > plan.taktDuration
+#   span:  task.slotSpan     > wagonType.slotSpan     > 1
+#   crew:  task.performedBy  > wagonType.defaultCrew
+#
+# Answers against examples/takt-override-demo.ttl:
+#   t_screed_Z1  beat P5D (plan)   span 2 (wagon)  crew SUB-A (wagon default)
+#   t_screed_Z2  beat P5D (plan)   span 3 (task)   crew SUB-B (task override)
+#   t_mep_Z1     beat P3D (train)  span 1 (-)      crew SUB-M (wagon default)
+#   t_mep_Z2     beat P2D (task)   span 1 (-)      crew SUB-M (wagon default)
+
+PREFIX takt: <https://w3id.org/taktology#>
+PREFIX dtc:  <https://dtc-ontology.cms.ed.tum.de/ontology/v2#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?task
+       (COALESCE(?taskBeat, ?trainBeat, ?wagonBeat, ?planBeat) AS ?effectiveBeat)
+       (COALESCE(?taskSpan, ?wagonSpan, 1) AS ?effectiveSpan)
+       (COALESCE(?taskCrewLabel, ?defaultCrewLabel) AS ?effectiveCrew)
+WHERE {
+  ?task a takt:TaktTask .
+
+  OPTIONAL { ?task takt:taktDuration ?taskBeat . }
+  OPTIONAL {
+    ?task takt:partOfProcess ?train .
+    ?train a takt:Train ; takt:taktDuration ?trainBeat .
+  }
+  OPTIONAL { ?task takt:instantiates/takt:taktDuration ?wagonBeat . }
+  OPTIONAL {
+    ?plan a takt:TaktGraph ; dtc:hasProcess ?task ; takt:taktDuration ?planBeat .
+  }
+
+  OPTIONAL { ?task takt:slotSpan ?taskSpan . }
+  OPTIONAL { ?task takt:instantiates/takt:slotSpan ?wagonSpan . }
+
+  OPTIONAL { ?task takt:performedBy/rdfs:label ?taskCrewLabel . }
+  OPTIONAL { ?task takt:instantiates/takt:defaultCrew/rdfs:label ?defaultCrewLabel . }
+}
+ORDER BY ?task
