@@ -11,7 +11,7 @@ stay light.
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │  takt:   (THIS repo — v0.5.0 minimal core, 19 terms)                   │
-│          TaktTask, WagonType, Crew, TaktZone, TaktGraph                │
+│          Wagon, WagonType, Crew, TaktZone, TaktGraph                │
 │          performedIn, actsOn, instantiates, performedBy, partOfProcess,│
 │          hasSuccessor (+SameZone / +SameWagon)                         │
 │          + rhythm/flag values: taktDuration, slot, planStart,          │
@@ -91,13 +91,13 @@ That residue is the entire reason this repo exists, and it is small.
 ## Two halves, one graph
 
 ```
-  WagonType ──instantiates── TaktTask ──performedIn── TaktZone ──bot:containsElement── Element
+  WagonType ──instantiates── Wagon ──performedIn── TaktZone ──bot:containsElement── Element
    (trade,                     │  │                    (bot:Zone —                        │
     crew)                      │  └──actsOn────────────adjacency, nesting)                │
                                │     (operand subset — drives duration)      TGraph-computed
                   hasSuccessor │                                             quantity (dictionary /
                                ▼                                             top:Quantity)
-                            TaktTask  (next wagon → the train)
+                            Wagon  (next wagon → the train)
 ```
 
 The payoff of putting both halves in one graph: a single traversal goes from a task

@@ -1,7 +1,7 @@
 # =============================================================================
 # Worked A-Box — wagon 5.1 (Drywall — first-side boarding) in takt zone B5:1
 # Source: anonymized takt-flowline-demo fixture (wagon 5.1, zone B5:1).
-# Conforms to ontology/takt.ttl v0.5.0 (minimal core; TaktZone ⊑ bot:Zone +
+# Conforms to ontology/takt.ttl v0.7.0 (minimal core; TaktZone ⊑ bot:Zone +
 # dtc:AsPlannedWorkingZone; the plan itself is a takt:TaktGraph).
 #
 # Exercises the single-zone core, plus the BOT topology a takt zone carries:
@@ -77,9 +77,9 @@ ex:slab_B5_1 a bot:Element ;                 # acted on by a different trade (sc
     rdfs:label "Floor slab, B5:1"@en .
 
 # -----------------------------------------------------------------------------
-# TAKT TASK — the occurrence (one coloured cell); a takt:TaktTask ⊑ dtc:AsPlannedProcess
+# TAKT TASK — the occurrence (one coloured cell); a takt:Wagon ⊑ dtc:AsPlannedProcess
 # -----------------------------------------------------------------------------
-ex:task_5_1_B5_1 a takt:TaktTask ;
+ex:task_5_1_B5_1 a takt:Wagon ;
     rdfs:label "5.1 @ B5:1" ;
     takt:instantiates ex:wagon_5_1 ;          # -> template
     takt:performedIn  ex:zone_B5_1 ;          # WHERE  (location / work area = space)
@@ -94,7 +94,7 @@ ex:task_5_1_B5_1 a takt:TaktTask ;
 # -----------------------------------------------------------------------------
 # Successor stub — just enough for the convoy edge to resolve.
 # -----------------------------------------------------------------------------
-ex:task_5_2_B5_1 a takt:TaktTask ;
+ex:task_5_2_B5_1 a takt:Wagon ;
     rdfs:label "5.2 @ B5:1" ;
     takt:performedIn ex:zone_B5_1 ;
     takt:slot 5 .

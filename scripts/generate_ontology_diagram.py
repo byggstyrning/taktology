@@ -144,7 +144,7 @@ NODES = {
     "Process": dict(box=(604, 616, 876, 698), kind="ext", title="dtc:Process",
                     lines=["the construction process (reused)"]),
     "TaktZone": dict(box=(936, 616, 1294, 774), kind="takt", title="TaktZone", badge=2),
-    "TaktTask": dict(box=(548, 796, 872, 940), kind="hero", title="TaktTask", badge=3),
+    "Wagon": dict(box=(548, 796, 872, 940), kind="hero", title="Wagon", badge=3),
     "Crew": dict(box=(76, 1000, 420, 1118), kind="takt", title="Crew", badge=5),
     "Element": dict(box=(1006, 1002, 1294, 1118), kind="ext", title="bot:Element",
                     lines=["building elements (reused)", "quantities via TGraph / top:Quantity"]),
@@ -161,16 +161,16 @@ DATAPROP_HOME = {"slotSpan": ("WagonType", "default"), "taktDuration": ("TaktGra
 # Object-property arrows. `prop` ties the arrow to a takt object property (for
 # validation); external=True edges are reused vocabulary (drawn dashed, green).
 EDGES = [
-    dict(prop="instantiates", src="TaktTask", dst="WagonType", label="instantiates", lpos=(430, 800)),
-    dict(prop="partOfProcess", src="TaktTask", dst="Train", label="partOfProcess", lpos=(556, 752)),
-    dict(prop="partOfProcess", src="TaktTask", dst="Process", label="partOfProcess", lpos=(748, 748)),
-    dict(prop="performedIn", src="TaktTask", dst="TaktZone", label="performedIn", lpos=(946, 790)),
-    dict(prop="hasSuccessor", src="TaktTask", dst="TaktTask", kind="selfloop", side="left",
+    dict(prop="instantiates", src="Wagon", dst="WagonType", label="instantiates", lpos=(430, 800)),
+    dict(prop="partOfProcess", src="Wagon", dst="Train", label="partOfProcess", lpos=(556, 752)),
+    dict(prop="partOfProcess", src="Wagon", dst="Process", label="partOfProcess", lpos=(748, 748)),
+    dict(prop="performedIn", src="Wagon", dst="TaktZone", label="performedIn", lpos=(946, 790)),
+    dict(prop="hasSuccessor", src="Wagon", dst="Wagon", kind="selfloop", side="left",
          label="hasSuccessor", lpos=(462, 850), sublabel="= the train", slpos=(462, 876)),
-    dict(prop="performedBy", src="TaktTask", dst="Crew", label="performedBy", lpos=(438, 968)),
+    dict(prop="performedBy", src="Wagon", dst="Crew", label="performedBy", lpos=(438, 968)),
     dict(prop="defaultCrew", src="WagonType", dst="Crew", label="defaultCrew", lpos=(154, 896)),
-    dict(prop="actsOn", src="TaktTask", dst="Element", label="actsOn — the operand", lpos=(938, 946)),
-    dict(prop=None, external=True, src="TaktGraph", dst="TaktTask", dashed=True, color="ext",
+    dict(prop="actsOn", src="Wagon", dst="Element", label="actsOn — the operand", lpos=(938, 946)),
+    dict(prop=None, external=True, src="TaktGraph", dst="Wagon", dashed=True, color="ext",
          label="dtc:hasProcess", lpos=(712, 976)),
     dict(prop=None, external=True, src="TaktZone", dst="Element",
          dashed=True, color="ext", label="bot:containsElement", lpos=(1152, 888)),
@@ -273,8 +273,10 @@ def resize_premultiplied(img: Image.Image, size) -> Image.Image:
     return Image.merge("RGBA", (*channels, a32.convert("L")))
 
 
-# Vocabulary colour system — panel 2 slabs and every pill in panel 3 share it.
-VOCAB = {
+# Vocabulary + UI colour system — one palette per GitHub theme. The PNGs stay
+# fully transparent; a <picture prefers-color-scheme> block in the README picks
+# the variant, so panels/cards/text always match the page they sit on.
+LIGHT_VOCAB = {
     "takt": dict(edge=(124, 110, 222), fill=(238, 236, 251), text=(74, 60, 176)),
     "dtc":  dict(edge=(46, 158, 116),  fill=(224, 243, 235), text=(22, 110, 78)),
     "bot":  dict(edge=(38, 142, 152),  fill=(220, 242, 244), text=(16, 108, 118)),
@@ -283,8 +285,8 @@ VOCAB = {
     "note": dict(edge=(150, 154, 168), fill=(240, 240, 245), text=(96, 100, 116)),
 }
 
-COL = dict(
-    title=(92, 80, 190),          # readable on white AND dark GitHub themes
+LIGHT_COL = dict(
+    title=(92, 80, 190),
     subtitle=(118, 118, 132),
     panel_fill=(252, 252, 254),
     panel_edge=(216, 216, 232),
@@ -304,18 +306,91 @@ COL = dict(
     arrow=(124, 110, 222),
     arrow_ext=(46, 158, 116),
     edge_label=(88, 84, 134),
-    pill=(246, 245, 252),         # halo pill behind edge labels
+    pill=(246, 245, 252),         # halo pill behind edge labels + header/footer text
     pill_edge=(214, 210, 244),
     badge=(92, 80, 190),
+    badge_ring=(255, 255, 255),
     chip_fill=(255, 255, 255),
     chip_edge=(203, 206, 222),
     shadow=(40, 38, 90),
     grid_line=(210, 212, 226),
+    cell_empty=(247, 247, 250),
+    cell_buffer=(243, 244, 247),
+    hatch=(204, 207, 218),
+    cell_milestone=(250, 236, 233),
+    cell_tint_bg=(255, 255, 255),  # wagon cells: wagon colour mixed toward this
+    cell_tint_mix=0.82,            # fraction of tint_bg in the mix
     readingA=(214, 96, 80),
     readingB=(84, 136, 210),
     buffer=(120, 126, 140),
     milestone=(178, 52, 40),
 )
+
+DARK_VOCAB = {
+    "takt": dict(edge=(138, 124, 235), fill=(36, 34, 58),  text=(198, 190, 250)),
+    "dtc":  dict(edge=(63, 185, 120),  fill=(22, 44, 33),  text=(130, 224, 168)),
+    "bot":  dict(edge=(60, 178, 190),  fill=(20, 42, 46),  text=(126, 215, 224)),
+    "top":  dict(edge=(186, 128, 240), fill=(42, 30, 54),  text=(218, 184, 250)),
+    "ifc":  dict(edge=(222, 168, 74),  fill=(50, 40, 22),  text=(240, 202, 134)),
+    "note": dict(edge=(110, 118, 129), fill=(33, 38, 45),  text=(174, 182, 192)),
+}
+
+DARK_COL = dict(
+    title=(171, 160, 245),
+    subtitle=(139, 148, 158),
+    panel_fill=(22, 27, 34),       # GitHub dark card (#161b22) on #0d1117 pages
+    panel_edge=(48, 54, 61),
+    panel_title=(171, 160, 245),
+    ink=(230, 237, 243),
+    muted=(139, 148, 158),
+    faint=(110, 118, 129),
+    takt_fill=(36, 34, 58),
+    takt_edge=(138, 124, 235),
+    takt_title=(226, 222, 252),
+    hero_fill=(48, 44, 78),
+    hero_edge=(152, 138, 250),
+    ext_fill=(22, 44, 33),
+    ext_edge=(63, 185, 120),
+    ext_title=(140, 228, 175),
+    ext_sub=(102, 200, 145),
+    arrow=(138, 124, 235),
+    arrow_ext=(63, 185, 120),
+    edge_label=(198, 192, 240),
+    pill=(33, 38, 45),
+    pill_edge=(48, 54, 61),
+    badge=(138, 124, 235),
+    badge_ring=(22, 27, 34),
+    chip_fill=(28, 33, 40),
+    chip_edge=(48, 54, 61),
+    shadow=(0, 0, 0),              # melts into a dark page, as a shadow should
+    grid_line=(48, 54, 61),
+    cell_empty=(28, 33, 40),
+    cell_buffer=(30, 35, 42),
+    hatch=(58, 65, 76),
+    cell_milestone=(58, 28, 26),
+    cell_tint_bg=(22, 27, 34),
+    cell_tint_mix=0.68,
+    readingA=(235, 122, 106),
+    readingB=(108, 168, 235),
+    buffer=(139, 148, 158),
+    milestone=(226, 100, 88),
+)
+
+THEMES = {"light": (LIGHT_COL, LIGHT_VOCAB), "dark": (DARK_COL, DARK_VOCAB)}
+
+# Active palette (set per render by set_theme; light by default so helpers work).
+COL, VOCAB = LIGHT_COL, LIGHT_VOCAB
+
+
+def set_theme(name: str) -> None:
+    global COL, VOCAB
+    COL, VOCAB = THEMES[name]
+
+
+def cell_tint(wagon_rgb):
+    """Wagon-cell fill: the wagon colour mixed toward the theme's cell base."""
+    bg, mix = COL["cell_tint_bg"], COL["cell_tint_mix"]
+    return tuple(int(v * (1 - mix) + b * mix) for v, b in zip(wagon_rgb, bg))
 
 # Panel-1 wagons: id, label, colour (deliberately NOT the vocab colours above).
 WAGONS = [("5.1", "framing", (78, 143, 217)),
@@ -436,7 +511,7 @@ def text_left(d, xy, text, font, color):
 def badge(d, xy, n, f, r=11):
     cx, cy = xy
     d.ellipse([sc(cx - r), sc(cy - r), sc(cx + r), sc(cy + r)],
-              fill=COL["badge"], outline=(255, 255, 255), width=int(sc(2)))
+              fill=COL["badge"], outline=COL["badge_ring"], width=int(sc(2)))
     d.text((sc(cx), sc(cy + 0.5)), str(n), font=f, fill=(255, 255, 255), anchor="mm")
 
 
@@ -569,17 +644,17 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
             cell = (cx0, rym - ch / 2, cx0 + cw, rym + ch / 2)
             content = GRID1[r][c]
             if content is None:
-                rounded(d, cell, 8, (247, 247, 250), COL["grid_line"], 1.2)
+                rounded(d, cell, 8, COL["cell_empty"], COL["grid_line"], 1.2)
             elif content == "buf":
-                rounded(d, cell, 8, (243, 244, 247), COL["buffer"], 1.4)
-                hatch(d, (cell[0] + 3, cell[1] + 3, cell[2] - 3, cell[3] - 3), (204, 207, 218), 10, 1.4)
+                rounded(d, cell, 8, COL["cell_buffer"], COL["buffer"], 1.4)
+                hatch(d, (cell[0] + 3, cell[1] + 3, cell[2] - 3, cell[3] - 3), COL["hatch"], 10, 1.4)
                 text_center(d, (cx0 + cw / 2, rym), "buffer", f_gridsub, COL["buffer"])
             elif content == "ms":
-                rounded(d, cell, 8, (250, 236, 233), COL["milestone"], 1.4)
+                rounded(d, cell, 8, COL["cell_milestone"], COL["milestone"], 1.4)
                 text_center(d, (cx0 + cw / 2, rym), "◆ handover", f_gridsub, COL["milestone"])
             else:
                 wid, wlab, wc = WAGONS[content]
-                rounded(d, cell, 8, tuple(min(255, v + int((255 - v) * 0.82)) for v in wc), wc, 1.6)
+                rounded(d, cell, 8, cell_tint(wc), wc, 1.6)
                 d.rounded_rectangle([sc(cell[0]), sc(cell[1]), sc(cell[0] + 7), sc(cell[3])],
                                     radius=sc(3), fill=wc)
                 # crew tag on one exemplar cell (badge 5)
@@ -765,13 +840,20 @@ def render(version, classes, objprops, dataprops) -> Image.Image:
 # =============================================================================
 # 5. README sync
 # =============================================================================
-def update_readme(version, rel_png):
+def update_readme(version, rel_light, rel_dark):
     if not README.exists():
         return
     text = README.read_text(encoding="utf-8")
     alt = f"taktology v{version} — the takt plan, its reuse stack, and the vocabulary, in one infographic"
+    # GitHub renders <picture> in READMEs: the dark variant is served on dark
+    # themes, so the transparent PNG always matches the page behind it.
     block = (f'{MARK_START}\n\n'
-             f'<p align="center">\n  <img src="{rel_png}" alt="{alt}" width="{DISPLAY_WIDTH}">\n</p>\n\n'
+             f'<p align="center">\n'
+             f'  <picture>\n'
+             f'    <source media="(prefers-color-scheme: dark)" srcset="{rel_dark}">\n'
+             f'    <img src="{rel_light}" alt="{alt}" width="{DISPLAY_WIDTH}">\n'
+             f'  </picture>\n'
+             f'</p>\n\n'
              f'{MARK_END}')
     if MARK_START in text and MARK_END in text:
         pre = text.split(MARK_START)[0]
@@ -782,7 +864,7 @@ def update_readme(version, rel_png):
         return
     if new != text:
         README.write_text(new, encoding="utf-8")
-        print(f"updated README diagram block -> {rel_png}")
+        print(f"updated README diagram block -> {rel_light} + {rel_dark}")
     else:
         print("README already up to date.")
 
@@ -795,14 +877,18 @@ def main():
     validate(classes, objprops, dataprops)
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    img = render(version, classes, objprops, dataprops)
-    out = OUT_DIR / f"taktology-v{version}.png"
-    img.save(out, "PNG", optimize=True)
-    rel = out.relative_to(ROOT).as_posix()
-    print(f"wrote {rel}  ({img.size[0]}x{img.size[1]}, "
-          f"{len(classes)} classes, {len(objprops)} obj props, {len(dataprops)} data props)")
+    rels = {}
+    for theme in ("light", "dark"):
+        set_theme(theme)
+        img = render(version, classes, objprops, dataprops)
+        suffix = "" if theme == "light" else "-dark"
+        out = OUT_DIR / f"taktology-v{version}{suffix}.png"
+        img.save(out, "PNG", optimize=True)
+        rels[theme] = out.relative_to(ROOT).as_posix()
+        print(f"wrote {rels[theme]}  ({img.size[0]}x{img.size[1]}, "
+              f"{len(classes)} classes, {len(objprops)} obj props, {len(dataprops)} data props)")
 
-    update_readme(version, rel)
+    update_readme(version, rels["light"], rels["dark"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # =============================================================================
 # Visualizer A-Box — a 3-zone takt train for viz/index.html
-# Conforms to ontology/takt.ttl v0.5.0.
+# Conforms to ontology/takt.ttl v0.7.0.
 #
 # One storey (PLAN 5), three adjacent takt zones (A5:1 -> B5:1 -> C5), a
 # three-wagon train (drywall 5.1 -> screed 6.1 -> painting 7.1) flowing through
@@ -73,7 +73,7 @@ ex:slab_C a bot:Element ; rdfs:label "Floor slab, C5"@en .
 # =============================================================================
 # THE GRID — zone A5:1 (head of the track)
 # =============================================================================
-ex:t_51_A a takt:TaktTask ;
+ex:t_51_A a takt:Wagon ;
     rdfs:label "5.1 @ A5:1" ;
     takt:instantiates ex:wagon_5_1 ; takt:performedIn ex:zone_A5_1 ;
     takt:actsOn ex:wall_A ; takt:performedBy ex:crew_SUB_03 ;
@@ -81,7 +81,7 @@ ex:t_51_A a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_61_A ;
     takt:hasSuccessorSameWagon ex:t_51_B .
 
-ex:t_61_A a takt:TaktTask ;
+ex:t_61_A a takt:Wagon ;
     rdfs:label "6.1 @ A5:1" ;
     takt:instantiates ex:wagon_6_1 ; takt:performedIn ex:zone_A5_1 ;
     takt:actsOn ex:slab_A ; takt:performedBy ex:crew_SUB_07 ;
@@ -89,7 +89,7 @@ ex:t_61_A a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_71_A ;
     takt:hasSuccessorSameWagon ex:t_61_B .
 
-ex:t_71_A a takt:TaktTask ;
+ex:t_71_A a takt:Wagon ;
     rdfs:label "7.1 @ A5:1" ;
     takt:instantiates ex:wagon_7_1 ; takt:performedIn ex:zone_A5_1 ;
     takt:actsOn ex:wall_A ; takt:performedBy ex:crew_SUB_12 ;
@@ -97,14 +97,14 @@ ex:t_71_A a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_buf_A ;
     takt:hasSuccessorSameWagon ex:t_71_B .
 
-ex:t_buf_A a takt:TaktTask ;              # capacity buffer — an empty wagon slot
+ex:t_buf_A a takt:Wagon ;              # capacity buffer — an empty wagon slot
     rdfs:label "buffer @ A5:1" ;
     takt:performedIn ex:zone_A5_1 ;
     takt:slot 4 ;
     takt:isBuffer true ;
     takt:hasSuccessorSameZone ex:t_ms_A .
 
-ex:t_ms_A a takt:TaktTask ;               # milestone cell
+ex:t_ms_A a takt:Wagon ;               # milestone cell
     rdfs:label "Inflytt A5:1" ;
     takt:performedIn ex:zone_A5_1 ;
     takt:slot 5 ;
@@ -113,7 +113,7 @@ ex:t_ms_A a takt:TaktTask ;               # milestone cell
 # =============================================================================
 # Zone B5:1 — one takt behind
 # =============================================================================
-ex:t_51_B a takt:TaktTask ;
+ex:t_51_B a takt:Wagon ;
     rdfs:label "5.1 @ B5:1" ;
     takt:instantiates ex:wagon_5_1 ; takt:performedIn ex:zone_B5_1 ;
     takt:actsOn ex:wall_B ; takt:performedBy ex:crew_SUB_03 ;
@@ -121,7 +121,7 @@ ex:t_51_B a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_61_B ;
     takt:hasSuccessorSameWagon ex:t_51_C .
 
-ex:t_61_B a takt:TaktTask ;
+ex:t_61_B a takt:Wagon ;
     rdfs:label "6.1 @ B5:1" ;
     takt:instantiates ex:wagon_6_1 ; takt:performedIn ex:zone_B5_1 ;
     takt:actsOn ex:slab_B ; takt:performedBy ex:crew_SUB_07 ;
@@ -129,7 +129,7 @@ ex:t_61_B a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_71_B ;
     takt:hasSuccessorSameWagon ex:t_61_C .
 
-ex:t_71_B a takt:TaktTask ;
+ex:t_71_B a takt:Wagon ;
     rdfs:label "7.1 @ B5:1" ;
     takt:instantiates ex:wagon_7_1 ; takt:performedIn ex:zone_B5_1 ;
     takt:actsOn ex:wall_B ; takt:performedBy ex:crew_SUB_12 ;
@@ -139,21 +139,21 @@ ex:t_71_B a takt:TaktTask ;
 # =============================================================================
 # Zone C5 — the tail of the track
 # =============================================================================
-ex:t_51_C a takt:TaktTask ;
+ex:t_51_C a takt:Wagon ;
     rdfs:label "5.1 @ C5" ;
     takt:instantiates ex:wagon_5_1 ; takt:performedIn ex:zone_C5 ;
     takt:actsOn ex:wall_C ; takt:performedBy ex:crew_SUB_03 ;
     takt:slot 3 ;
     takt:hasSuccessorSameZone ex:t_61_C .
 
-ex:t_61_C a takt:TaktTask ;
+ex:t_61_C a takt:Wagon ;
     rdfs:label "6.1 @ C5" ;
     takt:instantiates ex:wagon_6_1 ; takt:performedIn ex:zone_C5 ;
     takt:actsOn ex:slab_C ; takt:performedBy ex:crew_SUB_07 ;
     takt:slot 4 ;
     takt:hasSuccessorSameZone ex:t_71_C .
 
-ex:t_71_C a takt:TaktTask ;
+ex:t_71_C a takt:Wagon ;
     rdfs:label "7.1 @ C5" ;
     takt:instantiates ex:wagon_7_1 ; takt:performedIn ex:zone_C5 ;
     takt:actsOn ex:wall_C ; takt:performedBy ex:crew_SUB_12 ;

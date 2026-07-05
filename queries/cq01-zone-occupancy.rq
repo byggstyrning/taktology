@@ -19,7 +19,7 @@ WHERE {
 
     ?zone a takt:TaktZone ;
           rdfs:label ?zoneLabel .
-    ?task a takt:TaktTask ;
+    ?task a takt:Wagon ;
           takt:performedIn ?zone ;
           takt:slot ?slot .
     OPTIONAL { ?task rdfs:label ?taskLabel }

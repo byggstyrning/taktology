@@ -35,6 +35,6 @@ algorithm is application logic, deliberately **outside** any schema.
 ## How it shapes taktology (intertwine)
 The foundational driver of the whole repo. Feeds:
 [`docs/04-bimtakt-background.md`](../../docs/04-bimtakt-background.md) (direct
-summary), the `takt:TaktZone`/`WagonType`/`TaktTask` decomposition, and the
+summary), the `takt:TaktZone`/`WagonType`/`Wagon` decomposition, and the
 quantity→duration rule. The "manufacturer-neutral exchange" call grounds the
 interchange-ontology stance in [`docs/03-decisions.md`](../../docs/03-decisions.md).

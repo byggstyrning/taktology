@@ -28,7 +28,7 @@ directory into the fork verbatim.
 
 ## 2. Content negotiation — the `.htaccess`
 
-The namespace is a **hash namespace** (`…/taktology#TaktTask`), so every term
+The namespace is a **hash namespace** (`…/taktology#Wagon`), so every term
 IRI dereferences to the same document — one set of rules covers the whole
 vocabulary. The rules, in order (first match wins):
 

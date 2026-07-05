@@ -16,7 +16,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?crewLabel ?slot (COUNT(?task) AS ?load)
 WHERE {
-    ?task a takt:TaktTask ;
+    ?task a takt:Wagon ;
           takt:performedBy ?crew ;
           takt:slot ?slot .
     ?crew rdfs:label ?crewLabel .

@@ -1,7 +1,7 @@
 # =============================================================================
 # CQ09 — Plan membership: which tasks belong to which takt plan?
 # -----------------------------------------------------------------------------
-# Membership is dtc:hasProcess (TaktGraph -> TaktTask), reused from DTC v2's
+# Membership is dtc:hasProcess (TaktGraph -> Wagon), reused from DTC v2's
 # ConstructionSchedule rather than minted (ADR-15). This is the roll-up every
 # other CQ implicitly scopes to: one plan = one grid.
 #

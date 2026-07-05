@@ -1,6 +1,6 @@
 # =============================================================================
 # Worked A-Box — the TRAIN: two wagons flowing through two zones over three takts
-# Conforms to ontology/takt.ttl v0.5.0.
+# Conforms to ontology/takt.ttl v0.7.0.
 #
 # This is the example takt-flowline-demo-b5-1.ttl deliberately stops short of:
 # the flow BETWEEN zones. A 2-wagon train (drywall 5.1 -> screed 6.1) runs through
@@ -77,7 +77,7 @@ ex:slab_C5   a bot:Element ; rdfs:label "Floor slab, C5"@en .
 # =============================================================================
 
 # slot 1 — the train's head enters B5:1
-ex:t_51_B51 a takt:TaktTask ;
+ex:t_51_B51 a takt:Wagon ;
     rdfs:label "5.1 @ B5:1" ;
     takt:instantiates ex:wagon_5_1 ;
     takt:performedIn  ex:zone_B5_1 ;
@@ -88,7 +88,7 @@ ex:t_51_B51 a takt:TaktTask ;
     takt:hasSuccessorSameWagon ex:t_51_C5 .    # Reading B: same wagon on to C5
 
 # slot 2 — the convoy advances: screed into B5:1, drywall into C5
-ex:t_61_B51 a takt:TaktTask ;
+ex:t_61_B51 a takt:Wagon ;
     rdfs:label "6.1 @ B5:1" ;
     takt:instantiates ex:wagon_6_1 ;
     takt:performedIn  ex:zone_B5_1 ;
@@ -98,7 +98,7 @@ ex:t_61_B51 a takt:TaktTask ;
     takt:hasSuccessorSameZone  ex:t_buf_B51 ;
     takt:hasSuccessorSameWagon ex:t_61_C5 .
 
-ex:t_51_C5 a takt:TaktTask ;
+ex:t_51_C5 a takt:Wagon ;
     rdfs:label "5.1 @ C5" ;
     takt:instantiates ex:wagon_5_1 ;
     takt:performedIn  ex:zone_C5 ;
@@ -108,7 +108,7 @@ ex:t_51_C5 a takt:TaktTask ;
     takt:hasSuccessorSameZone ex:t_61_C5 .
 
 # slot 3 — screed finishes in C5; B5:1 holds a capacity buffer (an empty wagon)
-ex:t_61_C5 a takt:TaktTask ;
+ex:t_61_C5 a takt:Wagon ;
     rdfs:label "6.1 @ C5" ;
     takt:instantiates ex:wagon_6_1 ;
     takt:performedIn  ex:zone_C5 ;
@@ -116,7 +116,7 @@ ex:t_61_C5 a takt:TaktTask ;
     takt:performedBy  ex:crew_SUB_07 ;
     takt:slot 3 .
 
-ex:t_buf_B51 a takt:TaktTask ;
+ex:t_buf_B51 a takt:Wagon ;
     rdfs:label "buffer @ B5:1" ;
     takt:performedIn ex:zone_B5_1 ;
     takt:slot 3 ;

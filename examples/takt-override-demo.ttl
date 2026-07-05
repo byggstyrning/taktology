@@ -1,6 +1,6 @@
 # =============================================================================
 # Worked A-Box — FLEXIBLE TAKT: the template/override cascade (ADR-17)
-# Conforms to ontology/takt.ttl v0.6.0.
+# Conforms to ontology/takt.ttl v0.7.0.
 #
 # One plan, every override level exercised exactly once:
 #
@@ -8,13 +8,13 @@
 #   ├─ MEP train     P3D   <- takt:Train override (a train with its own rhythm)
 #   ├─ screed wagon  slotSpan 2, defaultCrew A  <- WagonType template values
 #   │   ├─ t_screed_Z1   (inherits: span 2, crew A, plan beat P5D)
-#   │   └─ t_screed_Z2   performedBy crew B, slotSpan 3   <- task-level overrides
-#   └─ t_mep_Z1          taktDuration P2D       <- task override beats even its train
+#   │   └─ t_screed_Z2   performedBy crew B, slotSpan 3   <- wagon-level overrides
+#   └─ t_mep_Z1          taktDuration P2D       <- wagon override beats even its train
 #
 # Effective values resolve most-specific-wins (queries/cq11-effective-beat.rq):
-#   beat:  task > train > wagonType > plan
-#   span:  task > wagonType > 1
-#   crew:  task.performedBy > wagonType.defaultCrew
+#   beat:  wagon > train > wagonType > plan
+#   span:  wagon > wagonType > 1
+#   crew:  wagon.performedBy > wagonType.defaultCrew
 # =============================================================================
 
 @prefix takt: <https://w3id.org/taktology#> .
@@ -73,16 +73,16 @@ ex:zone_Z2 a takt:TaktZone ;
 
 # Inherits everything from its templates: span 2 (wagon), crew A (wagon),
 # beat P5D (plan). Occupies slots 1-2.
-ex:t_screed_Z1 a takt:TaktTask ;
+ex:t_screed_Z1 a takt:Wagon ;
     rdfs:label "Screed @ Z1" ;
     takt:instantiates ex:wagon_screed ;
     takt:performedIn  ex:zone_Z1 ;
     takt:slot 1 ;
     takt:hasSuccessorSameWagon ex:t_screed_Z2 .
 
-# Task-level overrides win: crew B (not the wagon's crew A), span 3 (not the
+# Wagon-level overrides win: crew B (not the wagon's crew A), span 3 (not the
 # wagon's 2). Occupies slots 3-5.
-ex:t_screed_Z2 a takt:TaktTask ;
+ex:t_screed_Z2 a takt:Wagon ;
     rdfs:label "Screed @ Z2 (deviation)" ;
     takt:instantiates ex:wagon_screed ;
     takt:performedIn  ex:zone_Z2 ;
@@ -91,7 +91,7 @@ ex:t_screed_Z2 a takt:TaktTask ;
     takt:slotSpan 3 .                            # this one occurrence needs 3 beats
 
 # Rides the MEP train: effective beat P3D (train override), crew M (wagon default).
-ex:t_mep_Z1 a takt:TaktTask ;
+ex:t_mep_Z1 a takt:Wagon ;
     rdfs:label "MEP @ Z1" ;
     takt:instantiates ex:wagon_mep ;
     takt:performedIn  ex:zone_Z1 ;
@@ -99,8 +99,8 @@ ex:t_mep_Z1 a takt:TaktTask ;
     takt:slot 1 ;
     takt:hasSuccessorSameWagon ex:t_mep_Z2 .
 
-# Task override beats even its train: P2D (not the train's P3D, not the plan's P5D).
-ex:t_mep_Z2 a takt:TaktTask ;
+# Wagon override beats even its train: P2D (not the train's P3D, not the plan's P5D).
+ex:t_mep_Z2 a takt:Wagon ;
     rdfs:label "MEP @ Z2 (compressed)" ;
     takt:instantiates ex:wagon_mep ;
     takt:performedIn  ex:zone_Z2 ;

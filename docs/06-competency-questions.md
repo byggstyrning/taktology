@@ -173,7 +173,7 @@ reusable pattern for real plans.
 
 The plan is a template; values asserted lower in the cascade shadow the defaults
 above them. [`queries/cq11-effective-beat.rq`](../queries/cq11-effective-beat.rq)
-is the canonical COALESCE resolution — beat `task > train > wagonType > plan`,
+is the canonical COALESCE resolution — beat `wagon > train > wagonType > plan`,
 span `task > wagonType > 1`, crew `performedBy > defaultCrew`. Against
 [`examples/takt-override-demo.ttl`](../examples/takt-override-demo.ttl):
 

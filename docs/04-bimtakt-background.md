@@ -43,7 +43,7 @@ sequence.
 
 The paper's `TaktZone` / project-structure → **`takt:TaktZone` ⊑ `bot:Zone`**
 (topology; geometry computed by TopologicPy). Its activity-structure →
-**`takt:WagonType` + `takt:TaktTask`** (predecessor = `hasSuccessor`). Its
+**`takt:WagonType` + `takt:Wagon`** (predecessor = `hasSuccessor`). Its
 quantity/duration formula (`actsOn` quantity × rate ÷ crew) sits **outside** this
 schema — a downstream consumer concern: taktology holds the structural graph, and the
 element quantities travel as TGraph dictionary values / `top:Quantity` records (see

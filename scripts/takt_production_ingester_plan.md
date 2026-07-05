@@ -65,7 +65,7 @@ One `Element(type="takt:WagonType")` per table row; dedup `Element(type="takt:Cr
 ```python
 for wagon in wagon_types:
     for zone in zones where applies(wagon, zone):       # applicability filter
-        t = Element("takt:TaktTask", id=f"{wagon.id}@{zone.id}")
+        t = Element("takt:Wagon", id=f"{wagon.id}@{zone.id}")
         Relationship(t, wagon, "takt:instantiates")
         Relationship(t, zone,  "takt:performedIn")       # WHERE
         Relationship(crew[wagon.crew_code], t, "takt:performedBy")

@@ -14,7 +14,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 
 SELECT ?zoneLabel ?taskLabel ?slot
 WHERE {
-    ?task a takt:TaktTask ;
+    ?task a takt:Wagon ;
           takt:isBuffer true ;
           takt:performedIn ?zone ;
           takt:slot ?slot .

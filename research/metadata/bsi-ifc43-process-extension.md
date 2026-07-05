@@ -27,7 +27,7 @@ references it as the `skos:closeMatch` anchor, not as an import.
 
 ## How it shapes taktology (intertwine)
 Every `skos:closeMatch` in [`ontology/takt.ttl`](../../ontology/takt.ttl) points here
-(`takt:TaktTask`→`IfcTask`, `hasSuccessor`→`IfcRelSequence`,
+(`takt:Wagon`→`IfcTask`, `hasSuccessor`→`IfcRelSequence`,
 `performedIn`/`actsOn`→`IfcRelAssignsToProduct`, `performedBy`→`IfcRelAssignsToProcess`,
 `TaktTime`→`IfcTaskTime`). Grounds the full IFC mapping table in
 [`docs/02-vocabulary.md`](../../docs/02-vocabulary.md) and the "you haven't left IFC"

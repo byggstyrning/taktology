@@ -21,7 +21,7 @@ in the page so it works over `file://` too (browsers block `fetch()` there).
 
 | Layer | What it is | Reads from the graph |
 |---|---|---|
-| **Takt plan grid** (top) | What a takt-planning app shows the planner: wagons × zones × takts, the coloured flowline. Click a cell to select it; hover for a tooltip. | `takt:TaktTask` cells by `performedIn` (row) × `slot` (column), coloured by `instantiates` wagon |
+| **Takt plan grid** (top) | What a takt-planning app shows the planner: wagons × zones × takts, the coloured flowline. Click a cell to select it; hover for a tooltip. | `takt:Wagon` cells by `performedIn` (row) × `slot` (column), coloured by `instantiates` wagon |
 | **Knowledge graph** (left) | The ontology as it actually is — tasks, zones, wagons, crews, elements and the typed edges between them. Drag nodes; **hover** highlights a node and its neighbourhood everywhere. | every `takt:` triple; flow edges are `hasSuccessorSameZone` (Reading A) and `hasSuccessorSameWagon` (Reading B) |
 | **3D building** (centre) | An anonymized 3-storey building — structural shell + architectural + MEP fit-out — that **builds up takt-by-takt** as you scrub. Toggle disciplines; orbit/zoom; hover picks zones/elements. | zones tint by the wagon active at the current `slot`; each element appears when the task that `actsOn` it reaches its slot |
 
