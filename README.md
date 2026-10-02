@@ -62,7 +62,7 @@ compose on it by design.
 | [`schema/takt-topology-schema.yaml`](schema/takt-topology-schema.yaml) | Node + edge definitions for a **property-graph build** (Neo4j / NetworkX / rdflib), plus the generation loop. |
 | [`scripts/takt_production_ingester_plan.md`](scripts/takt_production_ingester_plan.md) | Implementation plan for an **IFC + wagon-table → takt graph** ingester. |
 | [`docs/`](docs/) | Architecture, vocabulary, design decisions (ADRs), BIMTakt background, TGraph pairing, competency questions. |
-| [`research/`](research/) | **Research corpus** — 48 sources (38 fully verified, 10 partial — flagged per row in the [INDEX](research/INDEX.md)) grounding the design ([manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). Includes a Chalmers cluster (BIM-takt, breakdown structures, Total BIM). |
+| [`research/`](research/) | **Research corpus** — 50 sources (41 fully verified, 9 partial — flagged per row in the [INDEX](research/INDEX.md)) grounding the design ([manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). Includes a Chalmers cluster (BIM-takt, breakdown structures, Total BIM). |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history — what changed in each release, and why. |
 
 ## The core idea
@@ -102,7 +102,7 @@ Full rationale in [docs/03-decisions.md](docs/03-decisions.md).
 ## Research grounding
 
 The design is evidence-based, not vibes. [`research/`](research/) is a curated corpus
-of **48 sources** (38 fully verified, 10 partial — flagged per row in the
+of **50 sources** (41 fully verified, 9 partial — flagged per row in the
 [INDEX](research/INDEX.md)) across takt theory, location-based planning, takt+BIM
 automation, IFC/ontologies, implementation case studies, and a Chalmers cluster
 (BIM-takt, spatio-temporal breakdown structures, Total BIM) — each tracing to a

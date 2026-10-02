@@ -9,7 +9,7 @@ back to its sources** (the *intertwine* rule).
 
 ```
 research/
-├── manifest.json     machine bibliography — 48 sources (id, authors, url, status, …)
+├── manifest.json     machine bibliography — 50 sources (id, authors, url, status, …)
 ├── INDEX.md          human catalog — status table, overlap clusters, topic matrix, GAPS
 ├── metadata/<id>.md  per-source notes for the design-driving sources
 ├── decisions/        ADRs linking the corpus to the taktology design
@@ -28,9 +28,9 @@ research/
 
 ## Status & honesty
 
-- **48 sources**: 22 adopted · 9 influenced · 12 reference · 5 candidate (six clusters,
-  incl. a Chalmers cluster of 11: BIM-takt, breakdown structures, Total BIM).
-- **38 fully verified**, 10 `partial` (one field — DOI/authors/venue/version — still
+- **50 sources**: 22 adopted · 10 influenced · 13 reference · 5 candidate (six clusters,
+  incl. a Chalmers cluster of 13: BIM-takt, breakdown structures, Total BIM).
+- **41 fully verified**, 9 `partial` (one field — DOI/authors/venue/version — still
   needs a manual confirm; flagged per row in `manifest.json` and INDEX).
 - **No PDFs are committed** — licenses unchecked, and many are paywalled.
   Open-access mirrors (IGLC, eScholarship, Aaltodoc, NSF PAR, CEUR, repositories) are

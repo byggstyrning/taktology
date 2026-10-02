@@ -666,6 +666,34 @@
       "status": "reference",
       "verified": true,
       "note": "Paper IV of Ljung's TBS licentiate; authors/venue/editors (Thomson & Neilson) CONFIRMED via the licentiate's appended-papers list. Proposes ISO/IEC 81346 reference-designation coding to add phasing info linking disciplines — relevant to a stable zone/phase IDENTIFIER scheme for interoperable takt zones. No DOI (ISBN-only proceedings); OA unconfirmed."
+    },
+    {
+      "id": "ljung-2026-sbuf-14237-slutrapport",
+      "title": "Byggprojekt strukturer för integrerad leverans — Ett Spatial-Temporalt BIM ramverk som länkar samman projekterings- och produktionsinformation samt projektorganisation (SBUF 14237, slutrapport)",
+      "authors": "Ljung, E. (Skanska Sverige AB); Roupé, M.; Viklund Tallgren, M.; Johansson, M. (Chalmers)",
+      "year": 2026,
+      "venue": "SBUF (Svenska Byggbranschens Utvecklingsfond) project 14237 final report, 2026-08-12; project 2023-08-06 – 2026-06-30, funded by SBUF, Skanska and CMB",
+      "url": "https://www.sbuf.se/projektresultat/projekt?id=321bfa5a-35fd-478e-8192-f7f8b22368b8",
+      "oa_url": "https://vpp.sbuf.se/Public/Documents/ProjectDocuments/321bfa5a-35fd-478e-8192-f7f8b22368b8/FinalReport/SBUF%2014237%20Slutrapport%20Byggprojekt%20strukturer%20f%C3%B6r%20integrerad%20leverans.pdf",
+      "access": "open",
+      "cluster": "bim-takt-breakdown",
+      "status": "influenced",
+      "verified": true,
+      "note": "The SBUF project record and practitioner-facing 28-page summary of the TBS licentiate (ljung-2026-tbs-integrated-delivery), which is the project's other deliverable. Full text read 2026-10-02. Adds what the thesis does not state in one place: the project record (SBUF 14237, reference group incl. Byggstyrning), the Swedish terms produktionsskede / produktionszon, the Vad/Vem/När/Var framing, ISO 21511 / 19650-2 / 12006-2 / 81346 positioning, six information categories, and the finding that TBS must be established early. Qualitative only; no measured productivity/cost/schedule effect."
+    },
+    {
+      "id": "viklund-tallgren-2026-bim-design-to-production-total-bim",
+      "title": "BIM from Design to Production: Prerequisites for a Model-Based Construction Framework with Total BIM",
+      "authors": "Viklund Tallgren, M.; Ljung, E.; Disney, O.; Johansson, M.; Roupé, M. (Chalmers)",
+      "year": 2026,
+      "venue": "Lecture Notes in Civil Engineering vol. 823, pp. 581–598 (Springer); presented at ACCCBE 2025 / CONVR 2025, Cape Town",
+      "url": "https://research.chalmers.se/en/publication/551451",
+      "doi": "https://doi.org/10.1007/978-3-032-18712-3_41",
+      "access": "unknown",
+      "cluster": "bim-takt-breakdown",
+      "status": "reference",
+      "verified": "partial",
+      "note": "Paper V of Ljung's TBS licentiate (the thesis lists 'BIM from Design to Production: Enabling Model-Based Construction Framework with Total BIM', CONVR 2025; Chalmers/Springer record carries the title given here, publication year 2026). Two Scandinavian cases (a Norwegian hospital, a Swedish office): Total BIM = BIM + Lean + TQM, with MMI, LOIN and Systematic Completion quality gates tied to control zones and takt. Abstract and case details confirmed from the Chalmers record and the thesis section 7.5; full text not read (no OA PDF indicated). Confirm the final title and OA status before formal citation."
     }
   ]
 }

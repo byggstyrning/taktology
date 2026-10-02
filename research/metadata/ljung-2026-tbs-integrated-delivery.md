@@ -6,7 +6,7 @@
 - **Status:** influenced · **Cluster:** bim-takt-breakdown · **Verified:** ✔ (full text read; user-supplied seed)
 
 ## Summary
-The "kappa" tying together Ljung's four appended papers into one artefact: the
+The "kappa" tying together Ljung's five appended papers into one artefact: the
 **Spatio-Temporal Breakdown Structure (TBS)**. Core thesis (quoted): *"the core issue
 lies not primarily in technology, but in how information is structured."* It names a
 **structuring gap**: *"BIM provides an overarching representation of the built asset,
@@ -27,9 +27,23 @@ by integrating temporal (production-based) and spatial (location-based) dimensio
   between design and production and support an integrated and well-coordinated information
   flow throughout the project lifecycle?"*
 - Empirically grounded in **two construction projects**, Design Science Research.
-- **Appended papers I–IV** (all already in this corpus): I = `viklund-tallgren-2022-bim-takt-production-control`,
+- **Appended papers I–V**: I = `viklund-tallgren-2022-bim-takt-production-control`,
   II = `ljung-2023-prerequisites-bim-takt`, III = `ljung-2024-work-preparation-ccc`,
-  IV = `ljung-2024-phasing-iso81346-arcom`. The licentiate is their synthesis.
+  IV = `ljung-2024-phasing-iso81346-arcom`, V = `viklund-tallgren-2026-bim-design-to-production-total-bim`
+  (added 2026-10-02; an earlier note here listed only I–IV). The licentiate is their synthesis.
+- **Terminology moved between papers.** Paper II's "deliverables" became **production phases**
+  (*produktionsskeden*) and its "construction scope" became **production zones**
+  (*produktionszoner*). Read Paper II with that mapping.
+- **Evidence base is wider than "two projects".** Four cases (Hovås Tak 59 apts; Eriksberget
+  130 apts and the SIM-house testbed; Klassrummet 135 apts; exploratory material from an
+  office in Lund and a residential building in Gothenburg). The artefact was developed in two
+  prototypes and evaluated on the SIM-house, not formally case-studied. Evaluation is
+  qualitative; productivity/cost/schedule effects are not measured (thesis §12.1).
+- **Derived requirements R1–R6 / principles DP1–DP5** (thesis §9.2, §10.1): shared product+process
+  structure, design–production integration, production-oriented (takt/flow) structuring,
+  collaborative/visual access, socio-technical usability, structured data for feedback.
+- **Short form:** the SBUF 14237 final report, `ljung-2026-sbuf-14237-slutrapport`, summarises
+  this thesis with the project record and the Swedish terms.
 
 ## Distinct contribution
 The clearest research-level statement that the *structure unifying space and time (and
