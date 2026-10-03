@@ -1,6 +1,6 @@
 # =============================================================================
 # Visualizer A-Box — a 3-zone takt train for viz/index.html
-# Conforms to ontology/takt.ttl v0.7.0.
+# Conforms to ontology/takt.ttl v0.8.0.
 #
 # One storey (PLAN 5), three adjacent takt zones (A5:1 -> B5:1 -> C5), a
 # three-wagon train (drywall 5.1 -> screed 6.1 -> painting 7.1) flowing through

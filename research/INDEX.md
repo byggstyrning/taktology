@@ -5,13 +5,13 @@ Human catalog of the research grounding the taktology vocabulary. Built with the
 a discovery sweep on **2026-06-23** across five clusters, then verification — expanded
 the same day with a sixth **Chalmers** cluster (BIM-takt, breakdown structures, Total BIM).
 
-- **Machine bibliography:** [manifest.json](manifest.json) (48 sources)
+- **Machine bibliography:** [manifest.json](manifest.json) (50 sources)
 - **Per-source notes:** [metadata/](metadata/) (deep notes for design-driving sources)
 - **Decisions the corpus feeds:** [decisions/](decisions/)
 - **Raw discovery runs:** [discoveries/](discoveries/) (ephemeral until promoted)
 
-> **Verification status.** Every source has a real, checked URL. 40/48 are fully
-> verified; 8 are `partial` (a specific field — DOI, author list, venue, or version
+> **Verification status.** Every source has a real, checked URL. 41/50 are fully
+> verified; 9 are `partial` (a specific field — DOI, author list, venue, or version
 > — still needs a manual confirm; flagged per row and in `manifest.json`). No PDFs
 > are committed — open-access mirrors are linked where the publisher copy is paywalled.
 
@@ -94,6 +94,8 @@ Legend — status: `adopted` (shapes the design, cited in a decision) · `influe
 | `disney-2024-total-bim-celsius-sasbe` | Embracing BIM in its totality (Total BIM case) | 2024 | reference | ✔ |
 | `ljung-2024-work-preparation-ccc` | Significance of a Shared Breakdown Structure (work prep) | 2024 | reference | ✔ |
 | `ljung-2024-phasing-iso81346-arcom` | Phasing interoperability via ISO 81346 coding | 2024 | reference | ✔ |
+| `ljung-2026-sbuf-14237-slutrapport` | SBUF 14237 final report: TBS, production phases & zones | 2026 | influenced | ✔ |
+| `viklund-tallgren-2026-bim-design-to-production-total-bim` | BIM from Design to Production: Total BIM framework (MMI/LOIN/SC, control zones) | 2026 | reference | ◑ |
 
 ---
 
@@ -141,7 +143,8 @@ report sub-results of the PhD; the two CONVR papers (`viklund-tallgren-2022-...`
 are the on-site/journal vs definitional-case treatments of *one* concept. Distinct from
 KIT's takt theory (Cluster A): this is BIM-integration and breakdown-structure in Swedish
 practice, not takt method per se. Cite `ljung-2026-tbs-integrated-delivery` for the
-spatio-temporal **structure** and `ljung-2024-phasing-iso81346-arcom` for a zone/phase
+spatio-temporal **structure** (and `ljung-2026-sbuf-14237-slutrapport` for its short form, the SBUF
+project record and the Swedish terms; it is the same artefact, not a second source of evidence) and `ljung-2024-phasing-iso81346-arcom` for a zone/phase
 **identifier/coding** scheme (relevant to taktology's namespace/coding open item).
 
 ---
@@ -165,10 +168,10 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
 | Topology & property-graph representation | `jabi-2018-topologic` ● `topologicpy-ontology` ● | `zhu-2025-ifc-graph` ◐ |
 | Empirical case studies / sectors | `frandson-2016-interiors-hospital` ● `lehtovaara-2019-residential` ● | `lerche-2022-takt-kanban-wind` ◐ |
 | Digital takt tools / monitoring | `keskiniva-2021-monitoring-renovation` ● | `melzner-2019-bim-takt-requirements` ◐ |
-| Spatio-temporal / work breakdown structures | `ljung-2026-tbs-integrated-delivery` ● | `ljung-2024-work-preparation-ccc` ◐ `ljung-2024-phasing-iso81346-arcom` ◐ `dlouhy-2016-three-level` ◐ |
+| Spatio-temporal / work breakdown structures | `ljung-2026-tbs-integrated-delivery` ● | `ljung-2026-sbuf-14237-slutrapport` ◐ `ljung-2024-work-preparation-ccc` ◐ `ljung-2024-phasing-iso81346-arcom` ◐ `dlouhy-2016-three-level` ◐ |
 | BIM-based takt in practice (prerequisites/control) | `viklund-tallgren-2022-bim-takt-production-control` ● `ljung-2023-prerequisites-bim-takt` ● | `becker-tschickardt-2023-bimtakt` ◐ `melzner-2019-bim-takt-requirements` ◐ |
 | Collaborative BIM planning & 4D scheduling | `viklund-tallgren-2021-collaborative-planning-phd` ● `viklund-tallgren-2020-bim-tool-collaborative-scheduling-itcon` ● | `viklund-tallgren-2021-4d-collaborative-planning-itcon` ◐ `viklund-tallgren-2018-collaborative-planning-lic` ◐ |
-| Total BIM / single source of truth (deployment) | `disney-2023-total-bim-onsite-itcon` ● `disney-2024-total-bim-celsius-sasbe` ● | `ljung-2026-tbs-integrated-delivery` ◐ |
+| Total BIM / single source of truth (deployment) | `disney-2023-total-bim-onsite-itcon` ● `disney-2024-total-bim-celsius-sasbe` ● | `ljung-2026-tbs-integrated-delivery` ◐ `viklund-tallgren-2026-bim-design-to-production-total-bim` ◐ |
 
 ---
 
@@ -238,6 +241,16 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
   `disney-2023-total-bim-onsite-itcon` is co-authored by Byggstyrning (this repo's org),
   pinning down the deployment context. Follow-ups: confirm OA/title for the two 2024
   Ljung papers; mine Bosch-Sijtsema's profile; consider ISO 81346 coding for zone IDs.
+- **Ljung pass 2 — 2026-10-02.** The SBUF 14237 project (the funder record behind the licentiate)
+  was not in the corpus; its final report (dated 2026-08-12, after pass 1) was read in full
+  and registered as `ljung-2026-sbuf-14237-slutrapport`. The final licentiate lists **five**
+  appended papers, not four: Paper V (Total BIM framework, with MMI/LOIN/Systematic Completion)
+  registered as `viklund-tallgren-2026-bim-design-to-production-total-bim` (◑: abstract and
+  thesis summary only). Pass 1's "no new sources" no longer holds. Open: three report
+  citations whose titles match no source here (see the report note). The report's phase and
+  zone scoping, and the project owner's corrections (trains are cross-disciplinary, wagons
+  have no owner), are applied in taktology v0.8.0 (ADR-19); which zone cut a train uses
+  stays open.
 - **v0.5.0 alignment re-verification — 2026-07-01.** Both upstream substrates re-read
   and pinned (`ontology/alignments.lock.json` created, sha256 per upstream): **`top:`
   v0.2.0** read (canonical IRI `http://w3id.org/topologicpy`, modified 2026-06-27; new

@@ -12,6 +12,8 @@
 # Answers against examples/takt-override-demo.ttl:
 #   t_screed_Z1  beat P5D (plan)   span 2 (wagon)  crew SUB-A (wagon default)
 #   t_screed_Z2  beat P5D (plan)   span 3 (task)   crew SUB-B (task override)
+#   t_drywall_Z1 beat P3D (train)  span 1 (-)      crew SUB-D (wagon default)
+#   t_drywall_Z2 beat P3D (train)  span 1 (-)      crew SUB-D (wagon default)
 #   t_mep_Z1     beat P3D (train)  span 1 (-)      crew SUB-M (wagon default)
 #   t_mep_Z2     beat P2D (task)   span 1 (-)      crew SUB-M (wagon default)
 

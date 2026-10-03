@@ -1,6 +1,6 @@
 # =============================================================================
 # Worked A-Box — the TRAIN: two wagons flowing through two zones over three takts
-# Conforms to ontology/takt.ttl v0.7.0.
+# Conforms to ontology/takt.ttl v0.8.0.
 #
 # This is the example takt-flowline-demo-b5-1.ttl deliberately stops short of:
 # the flow BETWEEN zones. A 2-wagon train (drywall 5.1 -> screed 6.1) runs through

@@ -4,8 +4,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/taktology-v0.7.0-dark.png">
-    <img src="docs/diagrams/taktology-v0.7.0.png" alt="taktology v0.7.0 — the takt plan, its reuse stack, and the vocabulary, in one infographic" width="720">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/taktology-v0.8.0-dark.png">
+    <img src="docs/diagrams/taktology-v0.8.0.png" alt="taktology v0.8.0 — the takt plan, its reuse stack, and the vocabulary, in one infographic" width="720">
   </picture>
 </p>
 
@@ -46,7 +46,7 @@ compose on it by design.
 
 | Path | What it is |
 |---|---|
-| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.7.0 minimal core. 22 terms: 6 classes, 9 object properties, 7 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC v2 + IFC. The takt zone subclasses `bot:Zone` directly (topology/adjacency); the plan itself is a `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule`; a wagon is `partOfProcess` a `dtc:Process` (Ljung 2026, spatio-temporal breakdown). The plan is a **template with scoped overrides** (ADR-17): beat resolves `wagon > train > wagon type > plan`, span `wagon > wagon type > 1`, crew `performedBy > defaultCrew`. |
+| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.8.0 minimal core. 22 terms: 6 classes, 9 object properties, 7 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC v2 + IFC. The takt zone subclasses `bot:Zone` directly (topology/adjacency); the plan itself is a `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule`; a wagon is `partOfProcess` a `dtc:Process` (Ljung 2026, spatio-temporal breakdown). The plan is a **template with scoped overrides** (ADR-17): beat resolves `wagon > train > wagon type > plan`, span `wagon > wagon type > 1`, crew `performedBy > defaultCrew`. |
 | [`examples/takt-flowline-demo-b5-1.ttl`](examples/takt-flowline-demo-b5-1.ttl) | A worked **A-Box** — wagon 5.1 in zone B5:1 from the anonymized [takt-flowline-demo](examples/takt-flowline-demo.md) plan: the single-zone core plus the BOT topology a takt zone carries. |
 | [`examples/takt-train-demo.ttl`](examples/takt-train-demo.ttl) | The **train** A-Box — two wagons through two adjacent zones over three takts, exercising both successor readings (`SameZone` / `SameWagon`) and a capacity buffer. |
 | [`examples/takt-override-demo.ttl`](examples/takt-override-demo.ttl) | The **flexible-takt A-Box** — every override level exercised once: a `takt:Train` running its own 3-day beat inside a 5-day plan, a double wagon (`slotSpan 2`), wagon-level beat/span/crew deviations. Resolution query: [`queries/cq11-effective-beat.rq`](queries/cq11-effective-beat.rq). |
@@ -62,13 +62,13 @@ compose on it by design.
 | [`schema/takt-topology-schema.yaml`](schema/takt-topology-schema.yaml) | Node + edge definitions for a **property-graph build** (Neo4j / NetworkX / rdflib), plus the generation loop. |
 | [`scripts/takt_production_ingester_plan.md`](scripts/takt_production_ingester_plan.md) | Implementation plan for an **IFC + wagon-table → takt graph** ingester. |
 | [`docs/`](docs/) | Architecture, vocabulary, design decisions (ADRs), BIMTakt background, TGraph pairing, competency questions. |
-| [`research/`](research/) | **Research corpus** — 48 sources (38 fully verified, 10 partial — flagged per row in the [INDEX](research/INDEX.md)) grounding the design ([manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). Includes a Chalmers cluster (BIM-takt, breakdown structures, Total BIM). |
+| [`research/`](research/) | **Research corpus** — 50 sources (41 fully verified, 9 partial — flagged per row in the [INDEX](research/INDEX.md)) grounding the design ([manifest](research/manifest.json), per-source notes, [ADR-001](research/decisions/ADR-001-research-grounding.md)). Includes a Chalmers cluster (BIM-takt, breakdown structures, Total BIM). |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history — what changed in each release, and why. |
 
 ## The core idea
 
 A **wagon type** is a trade's work package; its per-zone occurrences are **wagons** (`takt:Wagon` — one wagon in one zone for one takt, the coloured cell);
-the ordered chain of tasks is the **train** (no class — just the `hasSuccessor` chain);
+a **train** is the cross-disciplinary convoy of wagons from several trades through the zones (no class needed — the `hasSuccessorSameZone` chain gives its order);
 the **takt zone** is the work area they flow through. One graph traversal runs from a
 task to the very quantity that drives its duration (`task → actsOn → element →` its
 TopologicPy-computed quantity, carried as a TGraph dictionary value / `top:Quantity`)
@@ -102,7 +102,7 @@ Full rationale in [docs/03-decisions.md](docs/03-decisions.md).
 ## Research grounding
 
 The design is evidence-based, not vibes. [`research/`](research/) is a curated corpus
-of **48 sources** (38 fully verified, 10 partial — flagged per row in the
+of **50 sources** (41 fully verified, 9 partial — flagged per row in the
 [INDEX](research/INDEX.md)) across takt theory, location-based planning, takt+BIM
 automation, IFC/ontologies, implementation case studies, and a Chalmers cluster
 (BIM-takt, spatio-temporal breakdown structures, Total BIM) — each tracing to a

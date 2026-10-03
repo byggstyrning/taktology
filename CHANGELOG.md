@@ -19,6 +19,38 @@ Entries below 0.5.0 are reconstructed from git history and the ADRs in
 not follow it (0.3.1 retargeted an alignment as a patch; 0.4.1 removed terms as
 a patch). Versions before 0.2.0 predate this repository and are not tracked.
 
+## [0.8.0] — 2026-10-03
+
+The clarification release (ADR-19): what a train is, who owns a wagon, and what a zone
+belongs to. No term is added, removed or renamed (22 terms). MINOR because the meaning
+of `takt:Train` changes.
+
+### Changed
+
+- **`takt:Train` is cross-disciplinary.** The comment said "one trade sequence ('the
+  MEP train')". It now defines a convoy of wagons from several trades through a
+  sequence of zones, with `hasSuccessorSameZone` as its convoy order. One trade's run
+  across zones (`hasSuccessorSameWagon`, Reading B) is trade flow, not a train.
+  `rdfs:seeAlso` now points at `hasSuccessorSameZone`.
+- **Wagons have no owner.** `WagonType`, `Wagon`, `Crew`, `Train` and `trade` comments
+  state that `trade` classifies work content and `Crew` is a resource, not an owner.
+  The `partOfProcess` comment no longer claims responsibility "follows from crew +
+  process".
+- **Zone scope documented.** `TaktZone` comment: a zone is a cut of space owned by no
+  plan, train or trade; zones of different trains may nest or overlap.
+- `hasSuccessor`, `hasSuccessorSameWagon` and implementer note 3 reworded to match.
+- `examples/takt-override-demo.ttl`: the single-trade "MEP train" is now an
+  *interiors train* of drywall and MEP wagons (new `5.1 Drywall` wagon type, crew
+  SUB-D). `queries/cq11-effective-beat.rq` expected values updated (6 rows, was 4).
+- `TrainShape` and `hasSuccessor` shape messages reworded; no constraint changed.
+- `docs/02-vocabulary.md`: Train row, Reading A/B table ("a train? yes / no"), new
+  *Ownership* and *Zone scope* sections. `docs/03-decisions.md`: ADR-19, ADR-17 amended.
+
+### Migration
+
+None required. A v0.7.0 `takt:Train` named for one trade ("MEP train") stays valid;
+re-read it as a convoy that includes MEP wagons, or relabel it.
+
 ## [0.7.0] — 2026-07-05
 
 The lingo release: the occurrence class takes the domain's own word (ADR-18).

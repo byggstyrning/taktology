@@ -1,7 +1,8 @@
 # =============================================================================
 # CQ03 — Trade flow: where does one wagon (trade) go next, across zones?
 # -----------------------------------------------------------------------------
-# Reading B (trade flow): one wagon tracked across the building. A property
+# Reading B (trade flow): one wagon tracked across the building. This is a
+# trade's run, not a train (trains are cross-disciplinary, ADR-19). A property
 # path over takt:hasSuccessorSameWagon gives every downstream stop of the run
 # (with a two-zone run, each wagon yields its single hop).
 #
