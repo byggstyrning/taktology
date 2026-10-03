@@ -2,7 +2,7 @@
 # Taktology — a minimal, research-grounded vocabulary for takt production planning
 # =============================================================================
 #
-# v0.7.0 — MINIMAL CORE + FLEXIBLE-TAKT OVERRIDES. Aligned to the Digital Twin
+# v0.8.0 — MINIMAL CORE + FLEXIBLE-TAKT OVERRIDES. Aligned to the Digital Twin
 #          Construction (DTC) ontology v2 and to the TopologicPy ontology (top:)
 #          v0.2.0 — including its graph layer (top:Graph / top:KnowledgeGraph),
 #          which is what a TGraph-built takt plan projects into.
@@ -79,11 +79,11 @@
     dcterms:title "Taktology — takt production planning vocabulary (minimal core)"@en ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     dcterms:created "2026-06-23"^^xsd:date ;
-    dcterms:modified "2026-07-05"^^xsd:date ;
+    dcterms:modified "2026-10-03"^^xsd:date ;
     dcterms:creator "Byggstyrning AB"@en ;
-    owl:versionInfo "0.7.0" ;
-    owl:versionIRI <https://w3id.org/taktology/0.7.0> ;
-    owl:priorVersion <https://w3id.org/taktology/0.6.0> ;
+    owl:versionInfo "0.8.0" ;
+    owl:versionIRI <https://w3id.org/taktology/0.8.0> ;
+    owl:priorVersion <https://w3id.org/taktology/0.7.0> ;
     vann:preferredNamespacePrefix "takt" ;
     vann:preferredNamespaceUri "https://w3id.org/taktology#" ;
     rdfs:comment """Minimal core takt-planning vocabulary. Specializes the Digital
@@ -116,7 +116,13 @@ takt:TaktZone a owl:Class ;
         DTC's separation can mirror it with dtc:alignsWithZone — see docs ADR-13).
         When the zone is computed by TopologicPy, instances may additionally be typed
         top:Zone; the class itself only relatedMatches it (a takt zone need not be a
-        TopologicPy topology)."""@en ;
+        TopologicPy topology).
+        A zone belongs to no plan, train or trade: it is only a cut of space. Different
+        trains may cut the same space differently (a structure train by half-storey, an
+        interiors train by apartment cluster), so zones of different trains may nest or
+        overlap (bot:containsZone, shared bot:containsElement). Two wagons share a zone
+        only when they share the same cut; spatial conflict ACROSS trains must be read
+        from the spatial relation, not from zone identity (ADR-19)."""@en ;
     skos:closeMatch ifc:IfcSpatialZone ;
     skos:relatedMatch top:Zone ;
     rdfs:seeAlso dtc:alignsWithZone ;
@@ -128,7 +134,9 @@ takt:TaktZone a owl:Class ;
 takt:WagonType a owl:Class ;
     rdfs:label "Wagon type"@en ;
     rdfs:comment """The reusable definition of one trade's work package — e.g.
-        'Enkling gipsväggar' (single-side drywall). The TYPE level; its per-zone
+        'Enkling gipsväggar' (single-side drywall). 'Trade' classifies the work content;
+        it does not name an owner: a wagon is owned by no actor (ADR-19). The TYPE
+        level; its per-zone
         occurrences are takt:Wagon, linked by takt:instantiates. DTC has no
         occurrence-type layer (dtc:Type is an enumeration base for status/sequence
         types, not task types), so this term has no DTC parent and aligns only to
@@ -147,7 +155,10 @@ takt:Wagon a owl:Class ;
         wagon occurrence is. Carries its slot in the rhythm and acts on a trade-specific
         subset of the zone's elements. Degenerate cells are flagged, not subclassed:
         takt:isMilestone for milestone cells, takt:isBuffer for capacity-buffer cells
-        (empty wagons) — a documented pragmatism mirroring IfcTask.IsMilestone."""@en ;
+        (empty wagons) — a documented pragmatism mirroring IfcTask.IsMilestone.
+        A wagon has no owner: no company, delivery team or other actor is asserted as
+        responsible for it. The planned crew that performs it (takt:performedBy) is a
+        resource, not an owner (ADR-19)."""@en ;
     skos:closeMatch ifc:IfcTask ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://doi.org/10.1002/bate.202200088> .      # becker-tschickardt-2023-bimtakt
@@ -156,7 +167,8 @@ takt:Crew a owl:Class ;
     rdfs:subClassOf dtc:AsPlannedWorkerCrew ;
     rdfs:label "Crew"@en ;
     rdfs:comment """A planned worker crew (gang) that performs wagons; the crew
-        codes in a takt plan. DTC v2 keeps as-planned and as-performed crews disjoint;
+        codes in a takt plan. A resource that does the work, not an owner of it or an
+        accountable party (ADR-19). DTC v2 keeps as-planned and as-performed crews disjoint;
         this is the PLANNED crew — observed crews belong on the as-performed side."""@en ;
     skos:closeMatch ifc:IfcCrewResource ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
@@ -183,21 +195,24 @@ takt:TaktGraph a owl:Class ;
 takt:Train a owl:Class ;
     rdfs:subClassOf dtc:AsPlannedProcess ;
     rdfs:label "Train"@en ;
-    rdfs:comment """An OPTIONAL, addressable grouping of wagons that run as one
-        train — one trade sequence with its own identity (e.g. 'the MEP train',
-        'the interiors train on L1-L3'). The takt:hasSuccessor chain remains the
-        canonical train STRUCTURE (a train is still a path, not this class); mint a
-        Train individual only when the train needs to CARRY something — typically a
-        taktDuration override for a train that runs a different rhythm than the
-        plan-wide beat (ADR-17), a label, or membership bookkeeping. A Train is
-        itself a dtc:AsPlannedProcess (a composite planned process), so membership
-        reuses takt:partOfProcess (task -> train) and trains nest into the wider
-        on-site process the same way (train -> process) — no new membership
-        property. Plans without overrides never need this class."""@en ;
-    rdfs:seeAlso takt:hasSuccessor , takt:partOfProcess ;
+    rdfs:comment """A CROSS-DISCIPLINARY convoy: the wagons of several trades that run
+        together through a sequence of zones (e.g. 'the interiors train on L1-L3':
+        framing -> MEP rough-in -> drywall -> ...). A train is never one trade. One
+        trade's run across zones is a wagon's run (takt:hasSuccessorSameWagon, Reading
+        B), not a train. A train has no owner: no actor is asserted as responsible for
+        it or its wagons (ADR-19). Its STRUCTURE is the takt:hasSuccessorSameZone
+        chain through each zone it visits (a path, not this class); this class is an
+        OPTIONAL, addressable handle — mint a Train individual only when the train
+        needs to CARRY something: typically a taktDuration override for a train that
+        runs a different rhythm than the plan-wide beat (ADR-17), a label, or
+        membership bookkeeping. A Train is itself a dtc:AsPlannedProcess (a composite
+        planned process), so membership reuses takt:partOfProcess (task -> train) and
+        trains nest into the wider on-site process the same way (train -> process) —
+        no new membership property. Plans without overrides never need this class."""@en ;
+    rdfs:seeAlso takt:hasSuccessorSameZone , takt:partOfProcess ;
     rdfs:isDefinedBy <https://w3id.org/taktology> ;
     dcterms:source <https://iglc.net/Papers/Details/1350> ,        # dlouhy-2016-three-level (levels run different rhythms)
-                   <https://doi.org/10.1080/01446193.2020.1824295> .  # lehtovaara-2021 (trade flow as a unit)
+                   <https://doi.org/10.1080/01446193.2020.1824295> .  # lehtovaara-2021 (location flow: the convoy through a zone)
 
 # =============================================================================
 # OBJECT PROPERTIES (9)
@@ -274,13 +289,14 @@ takt:defaultCrew a owl:ObjectProperty ;
 takt:hasSuccessor a owl:ObjectProperty ;
     rdfs:label "has successor"@en ;
     rdfs:comment """The next wagon in execution order (default finish-start). The
-        CHAIN of these edges is the TRAIN — a train is a path through the task graph,
-        not a class. DTC reifies sequencing (hasPrecondition -> ProcessPrecondition +
+        takt:hasSuccessorSameZone chains give a TRAIN its convoy order (a train is
+        cross-disciplinary, ADR-19); takt:hasSuccessorSameWagon is a trade's run
+        across zones, which is not a train. DTC reifies sequencing (hasPrecondition -> ProcessPrecondition +
         requiresProcess + hasSequenceType); takt uses a direct edge, related by
         seeAlso. This property is READING-AGNOSTIC; use the two subproperties to make
         the flow direction machine-detectable: takt:hasSuccessorSameZone (Reading A,
         the cross-trade convoy through one zone) and takt:hasSuccessorSameWagon
-        (Reading B, one wagon's run across zones)."""@en ;
+        (Reading B, one wagon's run across zones — trade flow, not a train)."""@en ;
     rdfs:domain takt:Wagon ;
     rdfs:range  takt:Wagon ;
     rdfs:seeAlso dtc:requiresProcess , ifc:IfcRelSequence ;
@@ -303,7 +319,8 @@ takt:hasSuccessorSameWagon a owl:ObjectProperty ;
     rdfs:subPropertyOf takt:hasSuccessor ;
     rdfs:label "has successor (same wagon)"@en ;
     rdfs:comment """Reading B / TRADE FLOW: the same wagon's next occurrence in the
-        NEXT takt zone — one trade tracked across the building. Successive tasks share
+        NEXT takt zone — one trade tracked across the building (a trade's run, NOT a
+        train: trains are cross-disciplinary, ADR-19). Successive tasks share
         their takt:instantiates wagon type and differ in zone."""@en ;
     rdfs:domain takt:Wagon ;
     rdfs:range  takt:Wagon ;
@@ -317,8 +334,8 @@ takt:partOfProcess a owl:ObjectProperty ;
         of. Process membership together with takt:performedIn (space) and the rhythm
         (time) makes the task one cell of a Spatio-Temporal Breakdown Structure (TBS;
         Ljung 2026) — the process axis of the space x time x process breakdown
-        (responsibility follows from crew + process together, not from this edge
-        alone). Since v0.6.0 the domain is Wagon OR Train: a task can be part of a
+        (the TBS responsibility axis is not asserted by this edge or by any takt:
+        term: a wagon has no owner, ADR-19). Since v0.6.0 the domain is Wagon OR Train: a task can be part of a
         takt:Train (which is itself a dtc:AsPlannedProcess), and the train nests
         onward into the wider process with the same property. DTC v2 reifies
         decomposition the other way round (Process isDecomposedInto ->
@@ -416,8 +433,8 @@ takt:isBuffer a owl:DatatypeProperty ;
 
 takt:trade a owl:DatatypeProperty ;
     rdfs:label "trade"@en ;
-    rdfs:comment """The trade / discipline a wagon type belongs to (e.g. 'drywall',
-        'electrical') — the key the operand classification (which elements a task
+    rdfs:comment """The trade / discipline of a wagon type's work content (e.g. 'drywall',
+        'electrical') — a classification, not an owner or responsible party (ADR-19) — the key the operand classification (which elements a task
         acts on) and trade-flow queries join on. A plain literal on purpose: owning
         a trade taxonomy is out of scope for the minimal core."""@en ;
     rdfs:domain takt:WagonType ;
@@ -443,13 +460,14 @@ takt:trade a owl:DatatypeProperty ;
 #    docs/05-tgraph-pairing.md and ontology/alignments.lock.json before relying on
 #    emitted quantity triples.
 #
-# 3. THE TRAIN's structure is the takt:hasSuccessor chain (a path). Use the two
-#    subproperties (hasSuccessorSameZone / hasSuccessorSameWagon) so location flow
-#    and trade flow stay machine-distinguishable; both may coexist in one plan graph.
-#    takt:Train (v0.6.0) is an OPTIONAL named handle for a chain — mint one only to
-#    carry a train-scope override (its own taktDuration) or a label; membership is
-#    takt:partOfProcess (task -> train), and the train nests onward
-#    (train -> process) with the same property.
+# 3. A TRAIN is cross-disciplinary (ADR-19): its structure is the convoy order given
+#    by the hasSuccessorSameZone chains. A trade's run across zones
+#    (hasSuccessorSameWagon) is trade flow, not a train. Use the two subproperties so
+#    location flow and trade flow stay machine-distinguishable; both may coexist in
+#    one plan graph. takt:Train (v0.6.0) is an OPTIONAL named handle for a train —
+#    mint one only to carry a train-scope override (its own taktDuration) or a label;
+#    membership is takt:partOfProcess (task -> train), and the train nests onward
+#    (train -> process) with the same property. No wagon, train or zone has an owner.
 #
 # 4. PLAN MEMBERSHIP is dtc:hasProcess (TaktGraph -> Wagon), reused from DTC v2's
 #    ConstructionSchedule. In a TGraph export, membership is also implicit in

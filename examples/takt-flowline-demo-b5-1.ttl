@@ -1,7 +1,7 @@
 # =============================================================================
 # Worked A-Box — wagon 5.1 (Drywall — first-side boarding) in takt zone B5:1
 # Source: anonymized takt-flowline-demo fixture (wagon 5.1, zone B5:1).
-# Conforms to ontology/takt.ttl v0.7.0 (minimal core; TaktZone ⊑ bot:Zone +
+# Conforms to ontology/takt.ttl v0.8.0 (minimal core; TaktZone ⊑ bot:Zone +
 # dtc:AsPlannedWorkingZone; the plan itself is a takt:TaktGraph).
 #
 # Exercises the single-zone core, plus the BOT topology a takt zone carries:

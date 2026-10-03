@@ -1,15 +1,18 @@
 # =============================================================================
 # Worked A-Box — FLEXIBLE TAKT: the template/override cascade (ADR-17)
-# Conforms to ontology/takt.ttl v0.7.0.
+# Conforms to ontology/takt.ttl v0.8.0.
 #
 # One plan, every override level exercised exactly once:
 #
 #   plan beat        P5D                        (the template default)
-#   ├─ MEP train     P3D   <- takt:Train override (a train with its own rhythm)
-#   ├─ screed wagon  slotSpan 2, defaultCrew A  <- WagonType template values
-#   │   ├─ t_screed_Z1   (inherits: span 2, crew A, plan beat P5D)
-#   │   └─ t_screed_Z2   performedBy crew B, slotSpan 3   <- wagon-level overrides
-#   └─ t_mep_Z1          taktDuration P2D       <- wagon override beats even its train
+#   ├─ interiors train  P3D  <- takt:Train override: a CROSS-DISCIPLINARY convoy
+#   │   │                        (drywall + MEP wagons) running its own rhythm
+#   │   ├─ t_drywall_Z1/Z2   (inherit the train beat P3D)
+#   │   ├─ t_mep_Z1          (inherits the train beat P3D)
+#   │   └─ t_mep_Z2          taktDuration P2D  <- wagon override beats even its train
+#   └─ screed wagon  slotSpan 2, defaultCrew A  <- WagonType template values (no train)
+#       ├─ t_screed_Z1   (inherits: span 2, crew A, plan beat P5D)
+#       └─ t_screed_Z2   performedBy crew B, slotSpan 3   <- wagon-level overrides
 #
 # Effective values resolve most-specific-wins (queries/cq11-effective-beat.rq):
 #   beat:  wagon > train > wagonType > plan
@@ -29,17 +32,19 @@ ex:plan a takt:TaktGraph ;
     rdfs:label "Override demo plan"@en ;
     takt:taktDuration "P5D"^^xsd:duration ;      # plan-wide beat: one working week
     takt:planStart    "2024-04-01"^^xsd:date ;
-    dtc:hasProcess ex:t_screed_Z1 , ex:t_screed_Z2 , ex:t_mep_Z1 , ex:t_mep_Z2 .
+    dtc:hasProcess ex:t_screed_Z1 , ex:t_screed_Z2 ,
+                   ex:t_drywall_Z1 , ex:t_drywall_Z2 , ex:t_mep_Z1 , ex:t_mep_Z2 .
 
 # --- THE ON-SITE PROCESS + A TRAIN WITH ITS OWN RHYTHM ---------------------------
 ex:process_fitout a dtc:Process ;
     rdfs:label "Fit-out process"@en .
 
-# The MEP train runs a 3-day beat inside the 5-day plan. The Train individual
-# exists ONLY to carry that override — the train's structure is still the
-# hasSuccessor chain between its tasks.
-ex:train_mep a takt:Train ;
-    rdfs:label "MEP train"@en ;
+# The interiors train is a cross-disciplinary convoy (drywall -> MEP rough-in) and
+# runs a 3-day beat inside the 5-day plan. The Train individual exists ONLY to
+# carry that override — the train's structure is still the hasSuccessorSameZone
+# chain between its wagons. It has no owner: no actor is asserted for it.
+ex:train_interiors a takt:Train ;
+    rdfs:label "Interiors train"@en ;
     takt:taktDuration "P3D"^^xsd:duration ;
     takt:partOfProcess ex:process_fitout .       # trains nest onward the same way
 
@@ -50,6 +55,11 @@ ex:wagon_screed a takt:WagonType ;
     takt:slotSpan 2 ;                            # a double wagon: needs 2 beats per zone
     takt:defaultCrew ex:crew_A .                 # the wagon table's crew column
 
+ex:wagon_drywall a takt:WagonType ;
+    rdfs:label "5.1 Drywall"@en ;
+    takt:trade "drywall" ;
+    takt:defaultCrew ex:crew_D .
+
 ex:wagon_mep a takt:WagonType ;
     rdfs:label "4.1 MEP rough-in"@en ;
     takt:trade "mep" ;
@@ -59,6 +69,7 @@ ex:wagon_mep a takt:WagonType ;
 ex:crew_A a takt:Crew ; rdfs:label "SUB-A" .
 ex:crew_B a takt:Crew ; rdfs:label "SUB-B" .
 ex:crew_M a takt:Crew ; rdfs:label "SUB-M" .
+ex:crew_D a takt:Crew ; rdfs:label "SUB-D" .
 
 # --- ZONES -----------------------------------------------------------------------
 ex:zone_Z1 a takt:TaktZone ;
@@ -90,13 +101,34 @@ ex:t_screed_Z2 a takt:Wagon ;
     takt:performedBy  ex:crew_B ;                # overrides wagon_screed's defaultCrew
     takt:slotSpan 3 .                            # this one occurrence needs 3 beats
 
-# Rides the MEP train: effective beat P3D (train override), crew M (wagon default).
+# Drywall leads the interiors train: effective beat P3D (train override), crew D.
+# hasSuccessorSameZone = the convoy order through a zone (MEP pulls in behind it);
+# hasSuccessorSameWagon = the drywall trade's own run to the next zone.
+ex:t_drywall_Z1 a takt:Wagon ;
+    rdfs:label "Drywall @ Z1" ;
+    takt:instantiates ex:wagon_drywall ;
+    takt:performedIn  ex:zone_Z1 ;
+    takt:partOfProcess ex:train_interiors ;      # membership in the train
+    takt:slot 1 ;
+    takt:hasSuccessorSameZone ex:t_mep_Z1 ;
+    takt:hasSuccessorSameWagon ex:t_drywall_Z2 .
+
+ex:t_drywall_Z2 a takt:Wagon ;
+    rdfs:label "Drywall @ Z2" ;
+    takt:instantiates ex:wagon_drywall ;
+    takt:performedIn  ex:zone_Z2 ;
+    takt:partOfProcess ex:train_interiors ;
+    takt:slot 2 ;
+    takt:hasSuccessorSameZone ex:t_mep_Z2 .
+
+# Rides the interiors train behind drywall: effective beat P3D (train override),
+# crew M (wagon default).
 ex:t_mep_Z1 a takt:Wagon ;
     rdfs:label "MEP @ Z1" ;
     takt:instantiates ex:wagon_mep ;
     takt:performedIn  ex:zone_Z1 ;
-    takt:partOfProcess ex:train_mep ;            # membership in the train
-    takt:slot 1 ;
+    takt:partOfProcess ex:train_interiors ;      # membership in the train
+    takt:slot 2 ;
     takt:hasSuccessorSameWagon ex:t_mep_Z2 .
 
 # Wagon override beats even its train: P2D (not the train's P3D, not the plan's P5D).
@@ -104,6 +136,6 @@ ex:t_mep_Z2 a takt:Wagon ;
     rdfs:label "MEP @ Z2 (compressed)" ;
     takt:instantiates ex:wagon_mep ;
     takt:performedIn  ex:zone_Z2 ;
-    takt:partOfProcess ex:train_mep ;
-    takt:slot 2 ;
+    takt:partOfProcess ex:train_interiors ;
+    takt:slot 3 ;
     takt:taktDuration "P2D"^^xsd:duration .

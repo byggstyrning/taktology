@@ -58,7 +58,7 @@ node_types:
       id: str
       area: float                 # top:area
       volume: float               # top:volume
-      trade: str                  # which wagon owns it (classification step)
+      trade: str                  # which wagon acts on it (classification step)
 
   TaskTime:
     ifc_class: IfcTaskTime | IfcTaskTimeRecurring
@@ -103,7 +103,7 @@ edge_types:                       # source -> target
     cardinality: "1:N"
     edge_props: { role: "labor" }
 
-  SEQUENCE:                       # predecessor -> successor  *** this chain IS the train ***
+  SEQUENCE:                       # predecessor -> successor  *** the same-zone chains are the train's convoy order ***
     ifc_rel: IfcRelSequence
     takt_prop: takt:hasSuccessor
     from: Task
@@ -137,7 +137,7 @@ generation: |
           add_edge(t, zone,  ASSIGNS_TO_PRODUCT__LOCATION)
           add_edge(Crew[wagon.crew_code], t, ASSIGNS_TO_PROCESS)
 
-          # operand: the elements in this zone owned by this wagon's trade
+          # operand: the elements in this zone classified under this wagon's trade
           operands = [e for e in out(zone, CONTAINS_ELEMENT) if e.trade == wagon.id]
           for e in operands:
               add_edge(t, e, ASSIGNS_TO_PRODUCT__OPERAND)        # takt:actsOn
@@ -160,9 +160,10 @@ generation: |
 #   - applies(wagon, zone): project-specific predicate. Make it pluggable (a column
 #     in the wagon table or a callback), not hardcoded. The demo plan shows TAKPLAN,
 #     PAVILJONG and PLAN-2/4/5 carrying different wagon sets.
-#   - e.trade classification (which wagon owns which element) is new, project-specific
+#   - e.trade classification (which wagon acts on which element) is new, project-specific
 #     work — key it on IfcType + material or a Pset. Without it, actsOn cannot be
 #     populated and you fall back to the zone total (flag that as a stub).
-#   - Reading A vs B of "train": this rule encodes A. For B, sequence same-wagon
+#   - Reading A vs B: this rule encodes A (location flow, the train's convoy order). B is
+#     trade flow, one wagon's run, which is NOT a train (v0.8.0). For B, sequence same-wagon
 #     occurrences across adjacent zones instead.
 # =============================================================================

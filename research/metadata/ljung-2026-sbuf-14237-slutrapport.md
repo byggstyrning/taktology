@@ -33,7 +33,7 @@ on top of existing standards, and is explicitly **not** a new classification sys
   answer *when* and *where*. Same model filtered by phase, zone and responsible team instead
   of restructured in separate systems.
 - **Takt link, stated directly.** Within a phase the work is sequenced through its zones, and
-  the report calls that execution sequence the takt train (*takttåg*). Planned vs performed work
+  the report calls that cross-discipline execution sequence the takt train (*takttåg*). Planned vs performed work
   is compared per zone; a completed phase is verified against the designed information and then
   validated against requirements (V-model / *systematiskt färdigställande*) before the next
   phase starts. BAS-P/BAS-U and kontrollansvarig checks follow phase boundaries.
@@ -73,16 +73,21 @@ DP1–DP5, the SIM-house evaluation) go to the thesis.
   Papers II, III and V. **Unresolved, not added.**
 
 ## How it shapes taktology (intertwine)
-Observations for the vocabulary; none is a decision yet.
-- **`takt:TaktZone` ≈ production zone** — confirmed by the report, which also fixes the
-  scoping: zones subdivide a *phase*, so the zone set can differ from phase to phase.
-  taktology treats zones as plan-scoped; worth a check against a multi-phase plan.
-- **Production phase has no direct taktology class, and "train" is a false friend.** The report's
-  *takttåg* is the cross-discipline sequence of a phase's zones. `takt:Train` is one trade's
-  chain of wagons ("the MEP train"). A phase therefore spans several taktology trains; the
-  nearest taktology handles are `takt:partOfProcess` (train → wider on-site process) and the
-  plan (`TaktGraph`). Neither carries the **Vem** dimension: a phase is owned by a delivery
-  team, whereas `Crew` is the planned production crew.
+Applied in taktology v0.8.0 (ADR-19), after the project owner's corrections.
+- **`takt:Train` ≈ the report's *takttåg*.** Both are the cross-disciplinary convoy through
+  a sequence of zones. An earlier version of this note called "train" a false friend because
+  `takt:Train` was then written as one trade's chain; that definition was wrong and is
+  fixed. A trade's run across zones (`hasSuccessorSameWagon`) is trade flow, not a train.
+- **Production phase has no direct taktology class.** Nearest handles: the train
+  (a convoy that runs one phase's zones), `takt:partOfProcess` (train → wider process) and
+  the plan (`TaktGraph`).
+- **Wagons have no owner.** The report ties each phase to a responsible delivery team (the
+  *Vem* axis of TBS). taktology deliberately asserts no owner on a wagon, wagon type, train
+  or zone; `Crew` is a resource and `trade` a classification.
+- **Zones are phase-scoped in TBS, so they are cuts of space in taktology.** Each phase
+  has its own zone subdivision. taktology keeps `TaktZone` free of any plan or train, lets
+  zones of different trains nest or overlap, and leaves "which cut does a train use" open
+  (explainer: `docs/02-vocabulary.md`, *Zone scope*; ADR-19).
 - **Phase-boundary verification** (right product, right zone, right phase, then validate
   against requirements) is a conformance check over zone × phase; it belongs on the check
   plane next to takt integrity, not in the vocabulary.

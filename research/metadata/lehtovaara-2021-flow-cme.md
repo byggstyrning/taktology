@@ -28,5 +28,6 @@ cases it references.
 ## How it shapes taktology (intertwine)
 Frames the "two halves, one graph" rationale in
 [`docs/01-architecture.md`](../../docs/01-architecture.md): location flow ≈ the
-`hasSuccessor` train through a zone; trade flow ≈ a wagon's run across zones (Reading B).
-Explains *why* both readings of "train" matter and are worth representing.
+`hasSuccessorSameZone` convoy order of a (cross-disciplinary) train through a zone; trade
+flow ≈ a wagon's run across zones (Reading B), which is trade flow and not a train
+(ADR-19, v0.8.0). Explains *why* both flows matter and are worth representing separately.

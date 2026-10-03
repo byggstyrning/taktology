@@ -84,9 +84,9 @@ for wagon in wagon_types:
 ## 5. Sequence / train edges
 
 - **Reading A (default):** per zone, order tasks by wagon order, link consecutive
-  with `takt:hasSuccessor`. The train *is* that chain — v0.3.0 has no `Train` class;
-  query the path (or bundle with a SKOS collection if you must name one).
-- **Reading B:** sequence same-wagon occurrences across **adjacent** zones (use the
+  with `takt:hasSuccessorSameZone`. That chain is the train's convoy order. A train is
+  cross-disciplinary; mint a `takt:Train` only to name one or carry an override.
+- **Reading B (trade flow, not a train):** sequence same-wagon occurrences across **adjacent** zones (use the
   egress adjacency graph to order). Switch via `takt_config.train_reading`.
 
 ## 6. Optional TopologicPy pass  (gate exactly like egress)
@@ -113,10 +113,10 @@ Guard with `HAS_TOPOLOGICPY` and the entity ceiling. Use it ONLY for:
 1. **Framework signatures.** Confirm the actual `Ingester` / `_Base` / `Element` /
    `Relationship` / `topograph` method shapes — this plan infers them.
 2. **`applies(wagon, zone)`** — pluggable predicate, project-specific. Not hardcoded.
-3. **Element trade classification** (which wagon owns which element) — new,
+3. **Element trade classification** (which wagon acts on which element) — new,
    project-specific work, keyed on `IfcType` + material or a Pset. Required to
    populate `actsOn`; without it, fall back to the zone total **and flag it as a stub**.
-4. **Train Reading A vs B** — changes where every sequence edge goes. Default A.
+4. **Flow Reading A vs B** (A = the train's convoy order, B = a trade's run) — changes where every sequence edge goes. Default A.
 5. **Duration must not be faked** — reading a duration straight off the sheet defeats
    the model. It is `operand_quantity x rate / crew`. Stubbing quantities to get it
    running is fine *if flagged*; do not mistake a stub for real output.

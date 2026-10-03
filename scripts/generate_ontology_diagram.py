@@ -166,7 +166,7 @@ EDGES = [
     dict(prop="partOfProcess", src="Wagon", dst="Process", label="partOfProcess", lpos=(748, 748)),
     dict(prop="performedIn", src="Wagon", dst="TaktZone", label="performedIn", lpos=(946, 790)),
     dict(prop="hasSuccessor", src="Wagon", dst="Wagon", kind="selfloop", side="left",
-         label="hasSuccessor", lpos=(462, 850), sublabel="= the train", slpos=(462, 876)),
+         label="hasSuccessor", lpos=(462, 850), sublabel="train order: SameZone", slpos=(462, 876)),
     dict(prop="performedBy", src="Wagon", dst="Crew", label="performedBy", lpos=(438, 968)),
     dict(prop="defaultCrew", src="WagonType", dst="Crew", label="defaultCrew", lpos=(154, 896)),
     dict(prop="actsOn", src="Wagon", dst="Element", label="actsOn — the operand", lpos=(938, 946)),

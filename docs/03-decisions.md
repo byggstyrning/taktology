@@ -446,6 +446,10 @@ are ≥ 1; same-zone successors share a zone; same-wagon successors share a wago
 
 ## ADR-17 — Flexible takt: the template/override cascade; `Train` returns as an optional override bearer (v0.6.0)
 
+> **Amended by ADR-19 (v0.8.0):** the "MEP train" example below was a single-trade
+> train. A train is cross-disciplinary; read "the MEP train" as "an interiors train
+> that includes MEP". The decision itself is unchanged.
+
 **Decision.** Make the plan a **structured template with scoped overrides**, not a
 rigid grid. Three additions and one convention:
 
@@ -527,3 +531,42 @@ data: `s/takt:TaktTask/takt:Wagon/` — nothing else. Executed now deliberately:
 w3id is not yet registered and there are no external consumers, so this is the
 cheapest moment the rename will ever have. Older ADRs above keep "TaktTask" as
 historical record.
+
+---
+
+## ADR-19 — Trains are cross-disciplinary; wagons have no owner; zones are cuts of space (v0.8.0)
+
+**Decision.** Three clarifications, no new terms (the vocabulary stays at 22):
+
+1. **A train is cross-disciplinary.** It is the convoy of wagons from several trades
+   running together through a sequence of zones; its order through a zone is the
+   `hasSuccessorSameZone` chain. One trade's run across zones (`hasSuccessorSameWagon`,
+   Reading B) is **trade flow, not a train**. `takt:Train` stays an optional handle
+   (ADR-17); only its definition changes.
+2. **Wagons have no owner.** `takt:trade` classifies the work content; `takt:Crew` is
+   the planned resource that performs a wagon. Neither names an owner or responsible
+   party, and the vocabulary asserts none for a wagon, wagon type, train or zone.
+3. **A zone is a cut of space, owned by no plan, train or trade.** Different trains may
+   cut the same space differently, so zones of different trains may nest or overlap.
+   "Same zone" means "same cut".
+
+**Why.** The Train comment in v0.7.0 said "one trade sequence ('the MEP train')", and
+`docs/02-vocabulary.md` presented both successor readings as readings of "train". That
+contradicted the domain's use of the word (a train carries several trades) and the
+cross-trade trains in our own examples (`takt-train-demo.ttl`, `takt-building-demo.ttl`),
+and it let a single trade's run pass for a train. The SBUF 14237 report
+(`ljung-2026-sbuf-14237-slutrapport`) adds the zone point: each production phase has
+its own zone subdivision, and the sequence of zones within a phase is the takt train
+(*takttåg*). It also states the responsibility axis (who) of the TBS as a property of the
+phase's delivery team; taktology deliberately keeps that off the wagon. The v0.7.0
+`partOfProcess` comment claimed responsibility "follows from crew + process"; that
+claim is withdrawn.
+
+**Consequences.** MINOR (0.8.0): semantics of `Train` change, no term is added, removed
+or renamed. Existing data stays valid; a v0.7.0 "MEP train" individual is still a
+`takt:Train`, but should be re-read as a cross-disciplinary convoy or relabelled
+(`examples/takt-override-demo.ttl` now uses an interiors train of drywall + MEP wagons).
+`hasSuccessor` keeps both subproperties. **Left open:** which zone cut a train uses.
+There is no train → zone property; adding one would be a MINOR change and is only
+worth it if a plan really mixes cuts. Cross-train spatial conflict is a consumer query
+over `bot:containsZone` / `bot:containsElement`, not a shape in this repo.

@@ -247,8 +247,10 @@ Themes (rows) × where each is covered. ● primary · ◐ substantive.
   appended papers, not four: Paper V (Total BIM framework, with MMI/LOIN/Systematic Completion)
   registered as `viklund-tallgren-2026-bim-design-to-production-total-bim` (◑: abstract and
   thesis summary only). Pass 1's "no new sources" no longer holds. Open: three report
-  citations whose titles match no source here (see the report note) and whether production
-  zones are phase-scoped in the ontology (observation in the report note, not a decision).
+  citations whose titles match no source here (see the report note). The report's phase and
+  zone scoping, and the project owner's corrections (trains are cross-disciplinary, wagons
+  have no owner), are applied in taktology v0.8.0 (ADR-19); which zone cut a train uses
+  stays open.
 - **v0.5.0 alignment re-verification — 2026-07-01.** Both upstream substrates re-read
   and pinned (`ontology/alignments.lock.json` created, sha256 per upstream): **`top:`
   v0.2.0** read (canonical IRI `http://w3id.org/topologicpy`, modified 2026-06-27; new

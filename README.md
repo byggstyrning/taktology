@@ -4,8 +4,8 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/taktology-v0.7.0-dark.png">
-    <img src="docs/diagrams/taktology-v0.7.0.png" alt="taktology v0.7.0 — the takt plan, its reuse stack, and the vocabulary, in one infographic" width="720">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/taktology-v0.8.0-dark.png">
+    <img src="docs/diagrams/taktology-v0.8.0.png" alt="taktology v0.8.0 — the takt plan, its reuse stack, and the vocabulary, in one infographic" width="720">
   </picture>
 </p>
 
@@ -46,7 +46,7 @@ compose on it by design.
 
 | Path | What it is |
 |---|---|
-| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.7.0 minimal core. 22 terms: 6 classes, 9 object properties, 7 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC v2 + IFC. The takt zone subclasses `bot:Zone` directly (topology/adjacency); the plan itself is a `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule`; a wagon is `partOfProcess` a `dtc:Process` (Ljung 2026, spatio-temporal breakdown). The plan is a **template with scoped overrides** (ADR-17): beat resolves `wagon > train > wagon type > plan`, span `wagon > wagon type > 1`, crew `performedBy > defaultCrew`. |
+| [`ontology/takt.ttl`](ontology/takt.ttl) | **The vocabulary** (T-Box), v0.8.0 minimal core. 22 terms: 6 classes, 9 object properties, 7 datatype properties — each `dcterms:source`-cited to the research corpus, each aligned to DTC v2 + IFC. The takt zone subclasses `bot:Zone` directly (topology/adjacency); the plan itself is a `takt:TaktGraph` ⊑ `top:KnowledgeGraph` + `dtc:ConstructionSchedule`; a wagon is `partOfProcess` a `dtc:Process` (Ljung 2026, spatio-temporal breakdown). The plan is a **template with scoped overrides** (ADR-17): beat resolves `wagon > train > wagon type > plan`, span `wagon > wagon type > 1`, crew `performedBy > defaultCrew`. |
 | [`examples/takt-flowline-demo-b5-1.ttl`](examples/takt-flowline-demo-b5-1.ttl) | A worked **A-Box** — wagon 5.1 in zone B5:1 from the anonymized [takt-flowline-demo](examples/takt-flowline-demo.md) plan: the single-zone core plus the BOT topology a takt zone carries. |
 | [`examples/takt-train-demo.ttl`](examples/takt-train-demo.ttl) | The **train** A-Box — two wagons through two adjacent zones over three takts, exercising both successor readings (`SameZone` / `SameWagon`) and a capacity buffer. |
 | [`examples/takt-override-demo.ttl`](examples/takt-override-demo.ttl) | The **flexible-takt A-Box** — every override level exercised once: a `takt:Train` running its own 3-day beat inside a 5-day plan, a double wagon (`slotSpan 2`), wagon-level beat/span/crew deviations. Resolution query: [`queries/cq11-effective-beat.rq`](queries/cq11-effective-beat.rq). |
@@ -68,7 +68,7 @@ compose on it by design.
 ## The core idea
 
 A **wagon type** is a trade's work package; its per-zone occurrences are **wagons** (`takt:Wagon` — one wagon in one zone for one takt, the coloured cell);
-the ordered chain of tasks is the **train** (no class — just the `hasSuccessor` chain);
+a **train** is the cross-disciplinary convoy of wagons from several trades through the zones (no class needed — the `hasSuccessorSameZone` chain gives its order);
 the **takt zone** is the work area they flow through. One graph traversal runs from a
 task to the very quantity that drives its duration (`task → actsOn → element →` its
 TopologicPy-computed quantity, carried as a TGraph dictionary value / `top:Quantity`)

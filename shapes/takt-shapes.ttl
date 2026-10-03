@@ -76,7 +76,7 @@ takt:WagonShape a sh:NodeShape ;
     ] , [
         sh:path takt:hasSuccessor ;
         sh:class takt:Wagon ;
-        sh:message "takt:hasSuccessor (the train edge) links wagons to wagons."@en ;
+        sh:message "takt:hasSuccessor links wagons to wagons (a train's convoy order, or a trade's run across zones)."@en ;
     ] .
 
 # --- Reading A (location flow): same-zone successors must share their zone ---
@@ -204,7 +204,7 @@ takt:TrainShape a sh:NodeShape ;
         sh:path rdfs:label ;
         sh:minCount 1 ;
         sh:severity sh:Warning ;
-        sh:message "Train has no rdfs:label — a train minted as an override bearer should be nameable ('the MEP train')."@en ;
+        sh:message "Train has no rdfs:label — a train minted as an override bearer should be nameable ('the interiors train')."@en ;
     ] .
 
 takt:TaskOverrideShape a sh:NodeShape ;
